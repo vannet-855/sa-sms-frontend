@@ -1,0 +1,10 @@
+{
+  "routes": {
+    "/": {},
+    "/dashboard": {},
+    "/login": {},
+    "/parent-dashboard": {},
+    "/student-dashboard": {},
+    "/teacher-dashboard": {}
+  }
+}
