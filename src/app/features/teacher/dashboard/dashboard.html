@@ -1,0 +1,278 @@
+<div class="flex min-h-screen w-full bg-slate-950">
+    <app-sidebar [navGroups]="TEACHER_NAV_GROUPS" [user]="sidebarUser()" portalRole="TEACHER PORTAL">
+    </app-sidebar>
+
+    <main class="flex-1 overflow-y-auto p-6">
+        <!-- Loading -->
+        @if (loading()) {
+        <div class="flex h-96 items-center justify-center text-slate-500">
+            <i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Loading...
+        </div>
+        }
+
+        <!-- Error -->
+        @if (error()) {
+        <div class="mb-6 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+            <i class="fa-solid fa-circle-exclamation mr-2"></i>{{ error() }}
+        </div>
+        }
+
+        @if (!loading() && !error()) {
+        <!-- Breadcrumb & Header -->
+        <div class="mb-1 text-xs text-slate-600">
+            <span>Teacher</span> / <span class="text-emerald-400">Dashboard</span>
+        </div>
+        <div class="mb-4 sm:mb-6 justify-between flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <div>
+                <h1 class="text-xl font-bold text-white">Welcome back, {{ data()?.teacherName ?? 'Teacher' }}</h1>
+                <p class="mt-0.5 text-sm text-slate-500">Here's what's happening with your classes today.</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+                <div class="relative">
+                    <i
+                        class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-xs text-slate-600"></i>
+                    <input type="text" placeholder="Search anything..."
+                        class="w-64 rounded-lg border border-slate-800 bg-slate-900/60 py-2 pl-9 pr-3 text-sm text-slate-300 placeholder-slate-600 outline-none focus:border-sky-500" />
+                </div>
+                <button
+                    class="flex items-center gap-2 rounded-lg border border-slate-800 bg-slate-900/60 px-3.5 py-2 text-sm text-slate-300 hover:border-slate-700">
+                    <i class="fa-regular fa-bell"></i> Alerts
+                </button>
+            </div>
+        </div>
+
+        <!-- Summary Stat Cards -->
+        <div class="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div class="rounded-xl border border-slate-800 bg-slate-900/40 p-4">
+                <div class="mb-3 flex items-center justify-between">
+                    <p class="text-[11px] tracking-wide text-slate-500">MY CLASSES</p>
+                    <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-500/15">
+                        <i class="fa-solid fa-school text-xs text-sky-400"></i>
+                    </div>
+                </div>
+                <p class="text-2xl font-bold text-white">{{ data()?.totalClasses ?? 0 }}</p>
+            </div>
+
+            <div class="rounded-xl border border-slate-800 bg-slate-900/40 p-4">
+                <div class="mb-3 flex items-center justify-between">
+                    <p class="text-[11px] tracking-wide text-slate-500">TOTAL STUDENTS</p>
+                    <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/15">
+                        <i class="fa-solid fa-user-graduate text-xs text-emerald-400"></i>
+                    </div>
+                </div>
+                <p class="text-2xl font-bold text-white">{{ data()?.totalStudents ?? 0 }}</p>
+            </div>
+
+            <div class="rounded-xl border border-slate-800 bg-slate-900/40 p-4">
+                <div class="mb-3 flex items-center justify-between">
+                    <p class="text-[11px] tracking-wide text-slate-500">TODAY'S SCHEDULE</p>
+                    <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/15">
+                        <i class="fa-solid fa-calendar-days text-xs text-amber-400"></i>
+                    </div>
+                </div>
+                <p class="text-2xl font-bold text-white">{{ data()?.todayScheduleCount ?? 0 }}</p>
+            </div>
+        </div>
+
+        <!-- Two-column layout: Today's Schedule + My Classes -->
+        <div class="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+
+            <!-- Today's Schedule -->
+            <div class="rounded-xl border border-slate-800 bg-slate-900/40 p-5">
+                <div class="mb-4 flex items-center justify-between">
+                    <h2 class="text-sm font-semibold text-white"><i
+                            class="fa-regular fa-clock mr-1.5 text-sky-400"></i>Today's Schedule</h2>
+                    <a routerLink="/teacher/schedule"
+                        class="text-xs text-sky-400 hover:text-sky-300 transition-colors">View all</a>
+                </div>
+
+                @if (data()?.todaySchedules?.length; as count) {
+                <div class="space-y-2">
+                    @for (s of data()?.todaySchedules; track s.schedule_id) {
+                    <div
+                        class="flex items-start gap-3 rounded-lg border border-slate-800 px-3 py-2.5 hover:border-sky-700/50 transition">
+                        <div
+                            class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-sky-500/15 text-xs font-bold text-sky-400">
+                            {{ formatTime(s.start_time) }}
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <p class="text-sm font-medium text-slate-200 truncate">{{ s.course_name }}</p>
+                            <p class="text-xs text-slate-500">
+                                {{ s.group_name }} · {{ s.class_code }}
+                            </p>
+                            @if (s.room) {
+                            <p class="text-xs text-slate-600 mt-0.5">
+                                <i class="fa-regular fa-building mr-1"></i>{{ s.room }}
+                            </p>
+                            }
+                        </div>
+                        <div class="shrink-0 self-center text-xs text-slate-500">
+                            {{ formatTime(s.start_time) }} — {{ formatTime(s.end_time) }}
+                        </div>
+                    </div>
+                    }
+                </div>
+                } @else {
+                <div class="py-8 text-center text-xs text-slate-600">
+                    <i class="fa-regular fa-calendar-check mb-1 block text-base"></i>
+                    No classes scheduled for today
+                </div>
+                }
+            </div>
+
+            <!-- My Classes -->
+            <div class="rounded-xl border border-slate-800 bg-slate-900/40 p-5">
+                <div class="mb-4 flex items-center justify-between">
+                    <h2 class="text-sm font-semibold text-white"><i
+                            class="fa-solid fa-school mr-1.5 text-emerald-400"></i>My Classes</h2>
+                    <a routerLink="/teacher/classes"
+                        class="text-xs text-emerald-400 hover:text-emerald-300 transition-colors">View all</a>
+                </div>
+
+                @if (data()?.myClasses?.length; as count) {
+                <div class="space-y-2">
+                    @for (cl of data()?.myClasses; track cl.class_id) {
+                    <a [routerLink]="['/teacher/classes']"
+                        class="flex items-center justify-between rounded-lg border border-slate-800 px-3 py-2.5 hover:border-slate-700 transition cursor-pointer">
+                        <div class="min-w-0">
+                            <p class="text-sm font-medium text-slate-200 truncate">{{ cl.course_name }}</p>
+                            <p class="text-xs text-slate-500">
+                                {{ cl.group_name }} · {{ cl.class_code }}
+                            </p>
+                        </div>
+                        <div
+                            class="flex shrink-0 items-center gap-1.5 rounded-full bg-slate-800 px-2.5 py-1 text-xs text-slate-400">
+                            <i class="fa-solid fa-user-graduate text-[10px]"></i>
+                            {{ cl.student_count }}
+                        </div>
+                    </a>
+                    }
+                </div>
+                } @else {
+                <div class="py-8 text-center text-xs text-slate-600">
+                    <i class="fa-solid fa-school mb-1 block text-base"></i>
+                    No classes assigned yet
+                </div>
+                }
+            </div>
+        </div>
+
+        <!-- Bottom three-column section -->
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+
+            <!-- Attendance Summary (30d) -->
+            <div class="rounded-xl border border-slate-800 bg-slate-900/40 p-5">
+                <div class="mb-4 flex items-center justify-between">
+                    <h2 class="text-sm font-semibold text-white">Attendance (30d)</h2>
+                    <span class="text-xs text-slate-500">{{ attendanceSummary()?.total ?? 0 }} records</span>
+                </div>
+
+                @if (attendanceSummary(); as a) {
+                <!-- Stacked bar -->
+                <div class="mb-4 h-2 overflow-hidden rounded-full bg-slate-800">
+                    <div class="flex h-full">
+                        <div class="bg-emerald-500 transition-all" [style.width.%]="a.presentPercent" title="Present">
+                        </div>
+                        <div class="bg-amber-500 transition-all" [style.width.%]="a.latePercent" title="Late"></div>
+                        <div class="bg-sky-500 transition-all" [style.width.%]="a.permissionPercent" title="Permission">
+                        </div>
+                        <div class="bg-red-500 transition-all" [style.width.%]="a.absentPercent" title="Absent"></div>
+                    </div>
+                </div>
+
+                <div class="space-y-2 text-xs">
+                    <div class="flex items-center justify-between">
+                        <span><span
+                                class="inline-block h-2 w-2 rounded-full bg-emerald-500 mr-1.5"></span>Present</span>
+                        <span class="font-medium text-slate-300">{{ a.present }} ({{ a.presentPercent }}%)</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span><span class="inline-block h-2 w-2 rounded-full bg-amber-500 mr-1.5"></span>Late</span>
+                        <span class="font-medium text-slate-300">{{ a.late }} ({{ a.latePercent }}%)</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span><span class="inline-block h-2 w-2 rounded-full bg-sky-500 mr-1.5"></span>Permission</span>
+                        <span class="font-medium text-slate-300">{{ a.permission }} ({{ a.permissionPercent }}%)</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span><span class="inline-block h-2 w-2 rounded-full bg-red-500 mr-1.5"></span>Absent</span>
+                        <span class="font-medium text-slate-300">{{ a.absent }} ({{ a.absentPercent }}%)</span>
+                    </div>
+                </div>
+                } @else {
+                <div class="py-6 text-center text-xs text-slate-600">
+                    <i class="fa-solid fa-chart-simple mb-1 block text-base"></i>
+                    No attendance data in the last 30 days
+                </div>
+                }
+            </div>
+
+            <!-- Recent Attendance -->
+            <div class="rounded-xl border border-slate-800 bg-slate-900/40 p-5">
+                <div class="mb-4 flex items-center justify-between">
+                    <h2 class="text-sm font-semibold text-white">Recent Attendance</h2>
+                    <a routerLink="/teacher/attendance"
+                        class="text-xs text-sky-400 hover:text-sky-300 transition-colors">Take
+                        attendance</a>
+                </div>
+
+                @if (data()?.recentAttendance?.length; as count) {
+                <div class="space-y-2">
+                    @for (a of data()?.recentAttendance; track a.attendance_id) {
+                    <div class="rounded-lg border border-slate-800 px-3 py-2 hover:border-slate-700 transition">
+                        <div class="mb-1 flex items-center justify-between">
+                            <span class="text-sm font-medium text-slate-200 truncate">{{ a.student_full_name }}</span>
+                            <span class="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium"
+                                [ngClass]="statusClass(a.status)">{{ a.status }}</span>
+                        </div>
+                        <div class="flex items-center gap-3 text-xs text-slate-500">
+                            <span>{{ a.student_code }}</span>
+                            <span>{{ a.course_name }}</span>
+                        </div>
+                        <div class="mt-0.5 text-[10px] text-slate-600">{{ a.attendance_date }}</div>
+                    </div>
+                    }
+                </div>
+                } @else {
+                <div class="py-6 text-center text-xs text-slate-600">
+                    <i class="fa-solid fa-clipboard-check mb-1 block text-base"></i>
+                    No attendance records yet
+                </div>
+                }
+            </div>
+
+            <!-- Upcoming Exams -->
+            <div class="rounded-xl border border-slate-800 bg-slate-900/40 p-5">
+                <div class="mb-4 flex items-center justify-between">
+                    <h2 class="text-sm font-semibold text-white">Upcoming Exams</h2>
+                    <a routerLink="/teacher/exam-results"
+                        class="text-xs text-violet-400 hover:text-violet-300 transition-colors">View
+                        all</a>
+                </div>
+
+                @if (data()?.upcomingExams?.length; as count) {
+                <div class="space-y-2">
+                    @for (e of data()?.upcomingExams; track e.exam_id) {
+                    <div class="rounded-lg border border-slate-800 px-3 py-2.5 hover:border-slate-700 transition">
+                        <p class="mb-1 text-sm font-medium text-slate-200 truncate">{{ e.course_name }}</p>
+                        <div class="flex items-center gap-3 text-xs text-slate-500">
+                            <span><i class="fa-regular fa-calendar mr-1"></i>{{ e.exam_date }}</span>
+                        </div>
+                        <div class="mt-1 text-xs text-slate-600">
+                            {{ e.exam_type_name }} · {{ e.class_code }}
+                        </div>
+                    </div>
+                    }
+                </div>
+                } @else {
+                <div class="py-6 text-center text-xs text-slate-600">
+                    <i class="fa-solid fa-file-pen mb-1 block text-base"></i>
+                    No upcoming exams
+                </div>
+                }
+            </div>
+
+        </div>
+        }
+    </main>
+</div>

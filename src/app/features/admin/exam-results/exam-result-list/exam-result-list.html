@@ -1,0 +1,378 @@
+<div class="flex min-h-screen bg-slate-950">
+    <app-sidebar [navGroups]="navGroups" [user]="sidebarUser()" portalRole="ADMIN PORTAL">
+    </app-sidebar>
+
+    <main class="flex-1 overflow-y-auto p-6">
+        <!-- Header -->
+        <div class="mb-1 text-xs text-slate-600">
+            <span>Admin</span> / <span class="text-emerald-400">Exam Results</span>
+        </div>
+        <div class="mb-4 justify-between sm:mb-6 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <h1 class="text-xl font-bold text-white">Exam Results Management</h1>
+            <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+
+                <!-- Exam filter -->
+                <div class="relative inline-block text-left">
+                    <select (change)="setExamFilter($any($event.target).value)"
+                        class="rounded-lg border border-slate-800 bg-slate-900/60 px-3.5 py-2 text-sm text-slate-300 outline-none focus:border-emerald-500">
+                        <option value="">All Exams</option>
+                        @for (e of exams(); track e.id) {
+                        <option [value]="e.id">{{ e.name }}</option>
+                        }
+                    </select>
+                </div>
+
+                @if (selectedExamId()) {
+                <button (click)="clearFilters()"
+                    class="rounded-lg border border-slate-700 px-3 py-2 text-xs text-slate-400 hover:bg-slate-800">
+                    Clear
+                </button>
+                }
+
+                <button (click)="openAddModal()"
+                    class="flex items-center gap-2 rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:opacity-90">
+                    <i class="fa-solid fa-plus"></i> Add Result
+                </button>
+            </div>
+        </div>
+
+        <div class="rounded-xl border border-slate-800 bg-slate-900/40 animate-fade-in">
+
+            <!-- Loading -->
+            @if (loading()) {
+            <div class="flex h-64 items-center justify-center text-slate-500">
+                <i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Loading...
+            </div>
+            }
+
+            <!-- Error -->
+            @if (error()) {
+            <div class="m-5 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+                {{ error() }}
+            </div>
+            }
+
+            <!-- Table -->
+            @if (!loading() && !error()) {
+
+            <div class="max-h-[560px] overflow-auto custom-scrollbar">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-left text-sm">
+                        <thead class="sticky top-0 z-10 bg-slate-900">
+                            <tr class="text-[10px] uppercase tracking-wider text-slate-600">
+                                <th class="px-4 py-3 font-medium">ID</th>
+                                <th class="py-3 font-medium w-[180px]">Student</th>
+                                <th class="py-3 font-medium">Code</th>
+                                <th class="py-3 font-medium w-[180px]">Group name</th>
+                                <th class="py-3 font-medium">Type</th>
+                                <th class="py-3 font-medium">Date</th>
+                                <th class="py-3 font-medium">Score</th>
+                                <th class="px-4 py-3 text-right font-medium">Actions</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            @for (r of filteredResults(); track r.result_id) {
+                            <tr class="border-t border-slate-800/60 hover:bg-slate-800/20">
+                                <td class="px-4 py-3 text-slate-500">{{ r.result_id }}</td>
+                                <td class="py-3">
+                                    <div class="flex items-center gap-2.5">
+                                        <div
+                                            class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-800 text-xs font-semibold text-slate-400">
+                                            {{ initials(r.student_name || '') }}
+                                        </div>
+                                        <div class="min-w-0">
+                                            <p class="text-slate-200 font-medium truncate">{{ r.student_name }}</p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="text-slate-500 font-mono text-[13px]">{{ r.student_code || '—' }}</td>
+                                <td class="text-slate-400 text-[13px] max-w-[160px] truncate">{{ r.group_name || '—' }}
+                                </td>
+                                <td>
+                                    <span class="rounded-full px-2 py-0.5 text-[11px] font-medium"
+                                        [class]="r.exam_type === 'Midterm' ? 'bg-sky-500/15 text-sky-400' : 'bg-violet-500/15 text-violet-400'">
+                                        {{ r.exam_type || '—' }}
+                                    </span>
+                                </td>
+                                <td class="text-slate-400 text-[13px]">{{ r.exam_date ? (r.exam_date |
+                                    date:'mediumDate') :
+                                    '—' }}</td>
+                                <td class="py-3">
+                                    <span class="font-mono text-sm font-semibold"
+                                        [class.text-emerald-400]="(r.score ?? 0) >= 50"
+                                        [class.text-rose-400]="(r.score ?? 0) < 50"
+                                        [class.text-slate-400]="r.score === null">
+                                        {{ r.score !== null ? (r.score + '/100') : '—' }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3">
+                                    <div class="flex justify-end gap-1.5">
+                                        <button (click)="openEditModal(r)"
+                                            class="flex h-7 w-7 items-center justify-center rounded-md border border-slate-800 text-emerald-400 hover:border-emerald-500/50">
+                                            <i class="fa-solid fa-pen text-xs"></i>
+                                        </button>
+                                        <button
+                                            (click)="openDeleteModal(r.result_id, r.student_name || 'Result #' + r.result_id)"
+                                            class="flex h-7 w-7 items-center justify-center rounded-md border border-slate-800 text-red-400 hover:border-red-500/50">
+                                            <i class="fa-solid fa-trash text-xs"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            } @empty {
+                            <tr>
+                                <td colspan="8" class="px-4 py-16 text-center text-slate-600">
+                                    <i class="fa-solid fa-chart-simple mb-2 block text-lg"></i>
+                                    <p>No exam results found</p>
+                                    @if (selectedExamId()) {
+                                    <p class="mt-1 text-xs text-slate-500">Try clearing the filter</p>
+                                    }
+                                </td>
+                            </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="border-t border-slate-800/60 px-5 py-3">
+                <span class="text-[11px] text-slate-600">
+                    {{ filteredResults().length }} result(s)
+                </span>
+            </div>
+            }
+
+        </div>
+
+        <!-- ========== ADD RESULT MODAL ========== -->
+        @if (showAddModal()) {
+        <div class="animate-fade-in fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            (click)="closeAddModal()">
+            <div class="w-full max-w-lg rounded-xl border border-slate-800 bg-slate-900 p-6 shadow-2xl"
+                (click)="$event.stopPropagation()">
+
+                <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
+                    <h3 class="text-lg font-semibold text-slate-200">Add Exam Result</h3>
+                    <button (click)="closeAddModal()" class="text-slate-400 hover:text-slate-200">
+                        <i class="fa-solid fa-xmark text-xl"></i>
+                    </button>
+                </div>
+
+                <form [formGroup]="resultForm" (ngSubmit)="onSubmitResult()">
+                    <div class="grid grid-cols-1 gap-4">
+
+                        <!-- Select Group * -->
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Select Group <span
+                                    class="text-rose-500">*</span></label>
+                            <select formControlName="group_id" (change)="onGroupChange()"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                                <option [value]="null">— Select Group —</option>
+                                @for (g of classGroups(); track g.id) {
+                                <option [value]="g.id">{{ g.name }}</option>
+                                }
+                            </select>
+                        </div>
+
+                        <!-- Search Student -->
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Search Student <span
+                                    class="text-slate-500">— name or phone number</span></label>
+
+                            @if (selectedStudent()) {
+                            <div
+                                class="flex items-center justify-between rounded-lg border border-emerald-500/40 bg-slate-950 px-3 py-2">
+                                <div>
+                                    <p class="text-sm font-medium text-emerald-400">{{ selectedStudent()?.full_name }}
+                                    </p>
+                                    <p class="text-[11px] text-slate-500">{{ selectedStudent()?.student_code }}</p>
+                                </div>
+                                <button type="button" (click)="clearStudent()"
+                                    class="text-slate-400 hover:text-rose-400">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
+                            </div>
+                            } @else {
+                            <input type="text" [value]="searchQuery()" (input)="onSearchStudent($event)"
+                                placeholder="Type student name or phone..."
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none" />
+                            }
+
+                            <!-- Search results dropdown -->
+                            @if (!selectedStudent() && studentSearchResults().length > 0) {
+                            <div
+                                class="mt-1 max-h-44 overflow-y-auto rounded-lg border border-slate-700 bg-slate-900 shadow-lg">
+                                @for (s of studentSearchResults(); track s.id) {
+                                <button type="button" (click)="selectStudent(s)"
+                                    class="w-full px-3 py-2 text-left text-sm text-slate-300 hover:bg-slate-800 flex items-center justify-between">
+                                    <div>
+                                        <span class="font-medium">{{ s.full_name }}</span>
+                                        @if (s.student_code) {
+                                        <span class="ml-2 text-[11px] text-slate-500">{{ s.student_code }}</span>
+                                        }
+                                    </div>
+                                    @if (s.group_name) {
+                                    <span class="text-[11px] text-slate-500">{{ s.group_name }}</span>
+                                    }
+                                </button>
+                                }
+                            </div>
+                            }
+
+                            @if (!selectedStudent() && searchQuery() && studentSearchResults().length === 0 &&
+                            !searchingStudents()) {
+                            <p class="mt-1 text-xs text-slate-500">No students found.</p>
+                            }
+
+                            @if (searchingStudents()) {
+                            <p class="mt-1 text-xs text-slate-500"><i class="fa-solid fa-circle-notch fa-spin mr-1"></i>
+                                Searching...</p>
+                            }
+
+                            @if (resultForm.get('student_id')?.invalid && resultForm.get('student_id')?.touched) {
+                            <p class="mt-1 text-xs text-rose-400">Student is required.</p>
+                            }
+                        </div>
+
+                        <!-- Exam * -->
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Exam <span
+                                    class="text-rose-500">*</span></label>
+                            <select formControlName="exam_id"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                                <option [value]="null">— Select Subject —</option>
+                                @for (e of exams(); track e.id) {
+                                <option [value]="e.id">{{ e.name }}</option>
+                                }
+                            </select>
+                            @if (resultForm.get('exam_id')?.invalid && resultForm.get('exam_id')?.touched) {
+                            <p class="mt-1 text-xs text-rose-400">Subject is required.</p>
+                            }
+                        </div>
+
+                        <!-- Score -->
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Score (0–100)</label>
+                            <input type="number" formControlName="score" min="0" max="100" step="0.01"
+                                placeholder="e.g. 85"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none" />
+                            @if (resultForm.get('score')?.invalid && resultForm.get('score')?.touched) {
+                            <p class="mt-1 text-xs text-rose-400">Score must be between 0 and 100.</p>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end gap-3 border-t border-slate-800 mt-6 pt-4">
+                        <button type="button" (click)="closeAddModal()"
+                            class="rounded-lg border border-slate-800 px-4 py-2 text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200">Cancel</button>
+                        <button type="submit" [disabled]="resultForm.invalid || isSubmitting()"
+                            class="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                            @if (isSubmitting()) {
+                            <i class="fa-solid fa-spinner animate-spin"></i> Saving...
+                            } @else { Save }
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        }
+
+        <!-- ========== EDIT RESULT MODAL ========== -->
+        @if (showEditModal()) {
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            (click)="closeEditModal()">
+            <div class="w-full max-w-xl rounded-xl border border-slate-800 bg-slate-900 p-6 shadow-2xl"
+                (click)="$event.stopPropagation()">
+
+                <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
+                    <h3 class="text-lg font-semibold text-slate-200">
+                        <i class="fa-solid fa-pen mr-2 text-emerald-400"></i>
+                        Edit Exam Result
+                    </h3>
+                    <button (click)="closeEditModal()" class="text-slate-400 hover:text-slate-200">
+                        <i class="fa-solid fa-xmark text-xl"></i>
+                    </button>
+                </div>
+
+                <form [formGroup]="editForm" (ngSubmit)="onSubmitEdit()">
+                    <div class="grid grid-cols-1 gap-4">
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Student <span
+                                    class="text-rose-500">*</span></label>
+                            <select formControlName="student_id"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                                @for (s of students(); track s.id) {
+                                <option [value]="s.id">{{ s.name }} {{ s.code ? '(' + s.code + ')' : '' }}</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Exam <span
+                                    class="text-rose-500">*</span></label>
+                            <select formControlName="exam_id"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                                @for (e of exams(); track e.id) {
+                                <option [value]="e.id">{{ e.name }}</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Score (0–100)</label>
+                            <input type="number" formControlName="score" min="0" max="100" step="0.01"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none" />
+                            @if (editForm.get('score')?.invalid && editForm.get('score')?.touched) {
+                            <p class="mt-1 text-xs text-rose-400">Score must be between 0 and 100.</p>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end gap-3 border-t border-slate-800 mt-6 pt-4">
+                        <button type="button" (click)="closeEditModal()"
+                            class="rounded-lg border border-slate-800 px-4 py-2 text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200">Cancel</button>
+                        <button type="submit" [disabled]="editForm.invalid || isUpdating()"
+                            class="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                            @if (isUpdating()) {
+                            <i class="fa-solid fa-spinner animate-spin"></i> Saving...
+                            } @else { <i class="fa-solid fa-floppy-disk"></i> Save }
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        }
+
+        <!-- ========== DELETE MODAL ========== -->
+        @if (showDeleteModal()) {
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+            (click)="closeDeleteModal()">
+            <div class="w-full max-w-sm rounded-2xl border border-red-500/20 bg-slate-900 p-6 shadow-2xl"
+                (click)="$event.stopPropagation()">
+                <div class="flex flex-col items-center text-center">
+                    <div class="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-500/10">
+                        <i class="fa-solid fa-trash text-xl text-red-400"></i>
+                    </div>
+                    <p class="mb-1 text-[11px] font-semibold tracking-wide text-red-400">CONFIRM DELETE</p>
+                    <h2 class="mb-2 text-lg font-bold text-white">Delete Exam Result?</h2>
+                    <p class="mb-5 text-sm text-slate-400">
+                        Remove this exam result permanently?
+                    </p>
+                    <div class="flex w-full gap-3">
+                        <button type="button" (click)="closeDeleteModal()" [disabled]="isDeleting()"
+                            class="flex-1 rounded-lg border border-slate-700 px-4 py-2.5 text-sm font-medium text-slate-300 hover:border-slate-600 disabled:opacity-60">Cancel</button>
+                        <button type="button" (click)="confirmDelete()" [disabled]="isDeleting()"
+                            class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-red-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-60">
+                            @if (isDeleting()) { <i class="fa-solid fa-circle-notch fa-spin"></i> }
+                            Delete
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        }
+
+    </main>
+</div>

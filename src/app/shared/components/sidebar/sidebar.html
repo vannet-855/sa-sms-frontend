@@ -1,0 +1,75 @@
+<!-- Mobile hamburger button (visible when sidebar is closed on mobile) -->
+<button type="button" (click)="toggle()"
+    class="mobile-menu-btn fixed left-3 top-3 z-50 flex h-10 w-10 items-center justify-center rounded-lg bg-slate-900 border border-slate-700 text-slate-300 shadow-lg lg:hidden"
+    [class.hidden]="isOpen()">
+    <i class="fa-solid fa-bars text-sm"></i>
+</button>
+
+<!-- Mobile overlay backdrop -->
+@if (isOpen()) {
+<div class="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden" (click)="close()"></div>
+}
+
+<!-- Desktop sidebar + mobile drawer -->
+<aside
+    class="fixed inset-y-0 h-screen left-0 z-50 flex w-60 shrink-0 flex-col border-r border-slate-800 bg-slate-900/40 transition-transform duration-300 lg:sticky lg:top-0 lg:translate-x-0 lg:h-screen"
+    [class.-translate-x-full]="!isOpen()" [class.translate-x-0]="isOpen()">
+
+    <!-- /* Brand (fixed) */ -->
+    <div class="flex items-center gap-3 border-b border-slate-800 px-5 py-5 shrink-0">
+        <div
+            class="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-400 to-green-600">
+            <i class="fa-solid {{ logoIcon }} text-sm text-slate-950"></i>
+        </div>
+        <div>
+            <p class="text-sm font-bold leading-tight text-white">{{ portalName }}</p>
+            <p class="text-[10px] tracking-[0.15em] text-slate-500">{{ portalRole }}</p>
+        </div>
+    </div>
+
+    <!-- Nav (scrollable) -->
+    <nav class="flex-1 space-y-5 overflow-y-auto px-3 py-5 custom-scrollbar"
+        style="scrollbar-width: thin; scrollbar-color: rgba(71,85,105,0.5) transparent;">
+        @for (group of navGroups; track group.title) {
+        <div>
+            @if (group.title) {
+            <p class="mb-2 px-3 text-[10px] font-semibold tracking-[0.15em] text-slate-600">{{ group.title }}</p>
+            }
+            <div class="space-y-0.5">
+                @for (item of group.items; track item.route) {
+                <a (click)="close()" [routerLink]="item.route" routerLinkActive="bg-emerald-500/10 text-emerald-400"
+                    [routerLinkActiveOptions]="{ exact: false }"
+                    class="flex items-center justify-between rounded-lg px-3 py-2 text-sm text-slate-400 transition hover:bg-slate-800/60 hover:text-slate-200">
+                    <span class="flex items-center gap-2.5">
+                        <i class="fa-solid {{ item.icon }} w-4 text-center text-[13px]"></i>
+                        {{ item.label }}
+                    </span>
+                    @if (item.badge) {
+                    <span class="rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
+                        [ngClass]="item.badgeColor ?? 'bg-red-500/20 text-red-400'">
+                        {{ item.badge }}
+                    </span>
+                    }
+                </a>
+                }
+            </div>
+        </div>
+        }
+    </nav>
+
+    <!-- User footer (fixed at bottom) -->
+    <div class="flex items-center gap-2.5 border-t border-slate-800 px-4 py-3 shrink-0">
+        <div
+            class="flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold text-white bg-emerald-600">
+            {{ user.initials }}
+        </div>
+        <div class="flex-1 leading-tight">
+            <p class="text-sm font-medium text-white">{{ user.name }}</p>
+            <p class="text-xs text-slate-500">{{ user.roleLabel }}</p>
+        </div>
+        <button type="button" (click)="logout()" title="Log out"
+            class="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-red-500/10 hover:text-red-400">
+            <i class="fa-solid fa-right-from-bracket text-sm"></i>
+        </button>
+    </div>
+</aside>

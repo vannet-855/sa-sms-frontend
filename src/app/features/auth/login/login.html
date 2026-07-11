@@ -1,0 +1,119 @@
+<div class="min-h-screen w-full flex items-center justify-center bg-slate-950 px-4 py-10">
+    <div
+        class="relative w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900/60 p-8 shadow-2xl shadow-black/40">
+
+        <!-- Version badge -->
+        <!-- <span
+            class="absolute -top-3 right-6 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-[11px] font-mono text-emerald-400">
+            v2.0
+        </span> -->
+
+        <!-- Brand -->
+        <div class="flex items-center gap-3">
+            <div
+                class="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-green-600 shadow-lg shadow-emerald-500/20">
+                <i class="fa-solid fa-graduation-cap text-slate-950 text-lg"></i>
+            </div>
+            <div>
+                <p class="text-base font-bold text-white leading-tight">EduTrack SMS</p>
+                <p class="text-[10px] tracking-[0.2em] text-slate-500">SCHOOL MANAGEMENT SYSTEM</p>
+            </div>
+        </div>
+
+        <!-- Heading -->
+        <h1 class="mt-7 text-2xl font-bold text-white">Welcome back</h1>
+        <p class="mt-1 text-sm text-slate-400">Sign in to your account to continue</p>
+
+        <!-- API error -->
+        @if (errorMessage()) {
+        <div class="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2.5 text-sm text-red-400">
+            <i class="fa-solid fa-circle-exclamation mr-2"></i>{{ errorMessage() }}
+        </div>
+        }
+
+        <form class="mt-6 space-y-5" [formGroup]="form" (ngSubmit)="submit()">
+            <!-- Username / Email -->
+            <div>
+                <label class="mb-1.5 block text-xs font-medium tracking-wide text-slate-500">USERNAME / EMAIL</label>
+                <div class="relative">
+                    <input type="email" formControlName="email" placeholder="admin@school.edu" autocomplete="username"
+                        class="w-full rounded-lg border border-slate-800 bg-slate-950/60 px-4 py-2.5 pr-10 text-sm text-slate-200 placeholder-slate-600 outline-none transition focus:border-emerald-500" />
+                    <i
+                        class="fa-regular fa-user pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-600"></i>
+                </div>
+                @if (form.controls.email.invalid && form.controls.email.touched) {
+                <p class="mt-1 text-xs text-red-400">Please enter a valid email address</p>
+                }
+            </div>
+
+            <!-- Password -->
+            <div>
+                <label class="mb-1.5 block text-xs font-medium tracking-wide text-slate-500">PASSWORD</label>
+                <div class="relative">
+                    <input [type]="showPassword() ? 'text' : 'password'" formControlName="password"
+                        placeholder="••••••••••••" autocomplete="current-password"
+                        class="w-full rounded-lg border border-slate-800 bg-slate-950/60 px-4 py-2.5 pr-10 text-sm text-slate-200 placeholder-slate-600 outline-none transition focus:border-emerald-500" />
+                    <button type="button" (click)="togglePasswordVisibility()"
+                        class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-600 hover:text-slate-400">
+                        <i class="fa-regular" [class.fa-eye]="!showPassword()"
+                            [class.fa-eye-slash]="showPassword()"></i>
+                    </button>
+                </div>
+                @if (form.controls.password.invalid && form.controls.password.touched) {
+                <p class="mt-1 text-xs text-red-400">Password must be at least 6 characters</p>
+                }
+            </div>
+
+            <!-- Remember / Forgot -->
+            <div class="flex items-center justify-between text-sm">
+                <label class="flex items-center gap-2 text-slate-400">
+                    <input type="checkbox" formControlName="rememberMe"
+                        class="h-4 w-4 rounded border-slate-700 bg-slate-950 accent-emerald-500" />
+                    Remember me
+                </label>
+                <!-- <a routerLink="/auth/forgot-password" class="text-emerald-400 hover:text-emerald-300">Forgot
+                    password?</a> -->
+            </div>
+
+            <!-- Sign in -->
+            <button type="submit" [disabled]="loading()"
+                class="flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-emerald-500 to-green-400 py-3 text-sm font-semibold text-slate-950 shadow-lg shadow-emerald-500/20 transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60">
+                @if (loading()) {
+                <i class="fa-solid fa-circle-notch fa-spin"></i>
+                }
+                Sign In
+            </button>
+
+            <!-- Reset password -->
+            <!-- <button type="button"
+                class="w-full rounded-full border border-slate-700 py-3 text-sm font-medium text-slate-300 transition hover:border-slate-600 hover:text-white">
+                Reset Password
+            </button> -->
+        </form>
+
+        <!-- Divider -->
+        <div class="mt-7 flex items-center gap-3">
+            <span class="h-px flex-1 bg-slate-800"></span>
+            <span class="text-[11px] tracking-[0.2em] text-slate-600">SIGN IN AS</span>
+            <span class="h-px flex-1 bg-slate-800"></span>
+        </div>
+
+        <!-- Role chips -->
+        <!-- <div class="mt-4 flex flex-wrap gap-2">
+            @for (role of roles; track role.value) {
+            <button type="button" (click)="selectRole(role.value)"
+                class="rounded-full border px-4 py-1.5 font-mono text-xs transition"
+                [ngClass]="selectedRole() === role.value ? role.activeClasses : role.idleClasses">
+                {{ role.label }}
+            </button>
+            }
+        </div> -->
+
+        <!-- Footer -->
+        <p class="mt-7 text-center text-sm text-slate-500">
+            Need access?
+            <a routerLink="/auth/contact-admin" class="text-emerald-400 hover:text-emerald-300">Contact
+                Administrator</a>
+        </p>
+    </div>
+</div>

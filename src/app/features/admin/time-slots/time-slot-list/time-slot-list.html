@@ -1,0 +1,308 @@
+<div class="flex min-h-screen bg-slate-950">
+    <app-sidebar [navGroups]="navGroups" [user]="sidebarUser()" portalRole="ADMIN PORTAL">
+    </app-sidebar>
+
+    <main class="flex-1 overflow-y-auto p-6">
+        <!-- Header -->
+        <div class="mb-1 text-xs text-slate-600">
+            <span>Admin</span> / <span class="text-emerald-400">Time Slots</span>
+        </div>
+        <div class="mb-4 sm:mb-6 justify-between flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <h1 class="text-xl font-bold text-white">Time Slot Management</h1>
+            <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+                <button (click)="openAddModal()"
+                    class="flex items-center gap-2 rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:opacity-90">
+                    <i class="fa-solid fa-plus"></i> Add Time Slot
+                </button>
+            </div>
+        </div>
+
+        <div class="rounded-xl border border-slate-800 bg-slate-900/40 animate-fade-in">
+
+            <!-- Loading -->
+            @if (loading()) {
+            <div class="flex h-64 items-center justify-center text-slate-500">
+                <i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Loading...
+            </div>
+            }
+
+            <!-- Error -->
+            @if (error()) {
+            <div class="m-5 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+                {{ error() }}
+            </div>
+            }
+
+            <!-- Table -->
+            @if (!loading() && !error()) {
+
+            <div class="overflow-auto custom-scrollbar">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-left text-sm">
+                        <thead class="sticky top-0 z-10 bg-slate-900">
+                            <tr class="text-[10px] uppercase tracking-wider text-slate-600">
+                                <th class="px-4 py-3 font-medium">ID</th>
+                                <th class="py-3 font-medium">Shift</th>
+                                <th class="py-3 font-medium">Period</th>
+                                <th class="py-3 font-medium">Start Time</th>
+                                <th class="py-3 font-medium">End Time</th>
+                                <th class="px-4 py-3 text-right font-medium">Actions</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            @for (ts of timeSlots(); track ts.time_slot_id) {
+                            <tr class="border-t border-slate-800/60 hover:bg-slate-800/20">
+                                <td class="px-4 py-3 text-slate-500">{{ ts.time_slot_id }}</td>
+                                <td class="py-3">
+                                    <span class="inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold"
+                                        [ngClass]="{
+                      'bg-sky-500/15 text-sky-400': ts.shift_name === 'Morning',
+                      'bg-amber-500/15 text-amber-400': ts.shift_name === 'Afternoon',
+                      'bg-violet-500/15 text-violet-400': ts.shift_name === 'Evening'
+                    }">
+                                        {{ ts.shift_name ?? getShiftName(ts.shift_id) }}
+                                    </span>
+                                </td>
+                                <td class="py-3">
+                                    <span class="font-semibold text-slate-200">{{ ts.period_label }}</span>
+                                </td>
+                                <td class="py-3">
+                                    <span class="font-mono text-slate-300">{{ ts.start_time }}</span>
+                                </td>
+                                <td class="py-3">
+                                    <span class="font-mono text-slate-300">{{ ts.end_time }}</span>
+                                </td>
+                                <td class="px-4 py-3">
+                                    <div class="flex justify-end gap-1.5">
+                                        <button (click)="openEditModal(ts)"
+                                            class="flex h-7 w-7 items-center justify-center rounded-md border border-slate-800 text-emerald-400 hover:border-emerald-500/50">
+                                            <i class="fa-solid fa-pen text-xs"></i>
+                                        </button>
+                                        <button (click)="openDeleteModal(ts.time_slot_id, ts.period_label)"
+                                            class="flex h-7 w-7 items-center justify-center rounded-md border border-slate-800 text-red-400 hover:border-red-500/50">
+                                            <i class="fa-solid fa-trash text-xs"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            } @empty {
+                            <tr>
+                                <td colspan="6" class="px-4 py-16 text-center text-slate-600">
+                                    <i class="fa-solid fa-clock mb-2 block text-lg"></i>
+                                    <p>No time slots found</p>
+                                </td>
+                            </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="border-t border-slate-800/60 px-5 py-3">
+                <span class="text-[11px] text-slate-600">
+                    {{ timeSlots().length }} time slot(s)
+                </span>
+            </div>
+            }
+
+        </div>
+
+        <!-- ========== ADD TIME SLOT MODAL ========== -->
+        @if (showAddModal()) {
+        <div class="animate-fade-in fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            (click)="closeAddModal()">
+            <div class="w-full max-w-lg rounded-xl border border-slate-800 bg-slate-900 p-6 shadow-2xl"
+                (click)="$event.stopPropagation()">
+
+                <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
+                    <h3 class="text-lg font-semibold text-slate-200">Add New Time Slot</h3>
+                    <button (click)="closeAddModal()" class="text-slate-400 hover:text-slate-200">
+                        <i class="fa-solid fa-xmark text-xl"></i>
+                    </button>
+                </div>
+
+                <form [formGroup]="timeSlotForm" (ngSubmit)="onSubmitTimeSlot()">
+                    <div class="grid grid-cols-1 gap-4">
+
+                        <!-- shift_id * -->
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Shift <span
+                                    class="text-rose-500">*</span></label>
+                            <select formControlName="shift_id"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                                <option value="" disabled class="bg-slate-950">-- Select Shift --</option>
+                                @for (shift of shifts; track shift.shift_id) {
+                                <option [value]="shift.shift_id" class="bg-slate-950">{{ shift.shift_name }} ({{
+                                    shift.start_time }} - {{ shift.end_time }})</option>
+                                }
+                            </select>
+                            @if (timeSlotForm.get('shift_id')?.invalid && timeSlotForm.get('shift_id')?.touched) {
+                            <p class="mt-1 text-xs text-rose-400">Shift is required.</p>
+                            }
+                        </div>
+
+                        <!-- period_label * -->
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Period Label <span
+                                    class="text-rose-500">*</span></label>
+                            <input type="text" formControlName="period_label" placeholder="e.g. Period 1, Period 2"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none" />
+                            @if (timeSlotForm.get('period_label')?.invalid && timeSlotForm.get('period_label')?.touched)
+                            {
+                            <p class="mt-1 text-xs text-rose-400">Period label is required.</p>
+                            }
+                        </div>
+
+                        <!-- start_time * -->
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Start Time <span
+                                    class="text-rose-500">*</span></label>
+                            <input type="time" formControlName="start_time"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none" />
+                            @if (timeSlotForm.get('start_time')?.invalid && timeSlotForm.get('start_time')?.touched) {
+                            <p class="mt-1 text-xs text-rose-400">Start time is required.</p>
+                            }
+                        </div>
+
+                        <!-- end_time * -->
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">End Time <span
+                                    class="text-rose-500">*</span></label>
+                            <input type="time" formControlName="end_time"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none" />
+                            @if (timeSlotForm.get('end_time')?.invalid && timeSlotForm.get('end_time')?.touched) {
+                            <p class="mt-1 text-xs text-rose-400">End time is required.</p>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end gap-3 border-t border-slate-800 mt-6 pt-4">
+                        <button type="button" (click)="closeAddModal()"
+                            class="rounded-lg border border-slate-800 px-4 py-2 text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200">Cancel</button>
+                        <button type="submit" [disabled]="timeSlotForm.invalid || isSubmitting()"
+                            class="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                            @if (isSubmitting()) {
+                            <i class="fa-solid fa-spinner animate-spin"></i> Saving...
+                            } @else { Save }
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        }
+
+        <!-- ========== EDIT TIME SLOT MODAL ========== -->
+        @if (showEditModal()) {
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            (click)="closeEditModal()">
+            <div class="w-full max-w-lg rounded-xl border border-slate-800 bg-slate-900 p-6 shadow-2xl"
+                (click)="$event.stopPropagation()">
+
+                <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
+                    <h3 class="text-lg font-semibold text-slate-200">
+                        <i class="fa-solid fa-pen mr-2 text-emerald-400"></i>
+                        Edit Time Slot
+                    </h3>
+                    <button (click)="closeEditModal()" class="text-slate-400 hover:text-slate-200">
+                        <i class="fa-solid fa-xmark text-xl"></i>
+                    </button>
+                </div>
+
+                <form [formGroup]="editForm" (ngSubmit)="onSubmitEdit()">
+                    <div class="grid grid-cols-1 gap-4">
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Shift <span
+                                    class="text-rose-500">*</span></label>
+                            <select formControlName="shift_id"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                                <option value="" disabled class="bg-slate-950">-- Select Shift --</option>
+                                @for (shift of shifts; track shift.shift_id) {
+                                <option [value]="shift.shift_id" class="bg-slate-950">{{ shift.shift_name }} ({{
+                                    shift.start_time }} - {{ shift.end_time }})</option>
+                                }
+                            </select>
+                            @if (editForm.get('shift_id')?.invalid && editForm.get('shift_id')?.touched) {
+                            <p class="mt-1 text-xs text-rose-400">Shift is required.</p>
+                            }
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Period Label <span
+                                    class="text-rose-500">*</span></label>
+                            <input type="text" formControlName="period_label" placeholder="e.g. Period 1, Period 2"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none" />
+                            @if (editForm.get('period_label')?.invalid && editForm.get('period_label')?.touched) {
+                            <p class="mt-1 text-xs text-rose-400">Period label is required.</p>
+                            }
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Start Time <span
+                                    class="text-rose-500">*</span></label>
+                            <input type="time" formControlName="start_time"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none" />
+                            @if (editForm.get('start_time')?.invalid && editForm.get('start_time')?.touched) {
+                            <p class="mt-1 text-xs text-rose-400">Start time is required.</p>
+                            }
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">End Time <span
+                                    class="text-rose-500">*</span></label>
+                            <input type="time" formControlName="end_time"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none" />
+                            @if (editForm.get('end_time')?.invalid && editForm.get('end_time')?.touched) {
+                            <p class="mt-1 text-xs text-rose-400">End time is required.</p>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end gap-3 border-t border-slate-800 mt-6 pt-4">
+                        <button type="button" (click)="closeEditModal()"
+                            class="rounded-lg border border-slate-800 px-4 py-2 text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200">Cancel</button>
+                        <button type="submit" [disabled]="editForm.invalid || isUpdating()"
+                            class="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                            @if (isUpdating()) {
+                            <i class="fa-solid fa-spinner animate-spin"></i> Saving...
+                            } @else { <i class="fa-solid fa-floppy-disk"></i> Save }
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        }
+
+        <!-- ========== DELETE TIME SLOT MODAL ========== -->
+        @if (showDeleteModal()) {
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+            (click)="closeDeleteModal()">
+            <div class="w-full max-w-sm rounded-2xl border border-red-500/20 bg-slate-900 p-6 shadow-2xl"
+                (click)="$event.stopPropagation()">
+                <div class="flex flex-col items-center text-center">
+                    <div class="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-500/10">
+                        <i class="fa-solid fa-trash text-xl text-red-400"></i>
+                    </div>
+                    <p class="mb-1 text-[11px] font-semibold tracking-wide text-red-400">CONFIRM DELETE</p>
+                    <h2 class="mb-2 text-lg font-bold text-white">Delete Time Slot?</h2>
+                    <p class="mb-5 text-sm text-slate-400">
+                        Remove
+                        <span class="font-semibold text-slate-200">{{ deleteTarget()?.label }}</span> permanently?
+                    </p>
+                    <div class="flex w-full gap-3">
+                        <button type="button" (click)="closeDeleteModal()" [disabled]="isDeleting()"
+                            class="flex-1 rounded-lg border border-slate-700 px-4 py-2.5 text-sm font-medium text-slate-300 hover:border-slate-600 disabled:opacity-60">Cancel</button>
+                        <button type="button" (click)="confirmDelete()" [disabled]="isDeleting()"
+                            class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-red-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-60">
+                            @if (isDeleting()) { <i class="fa-solid fa-circle-notch fa-spin"></i> }
+                            Delete
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        }
+
+    </main>
+</div>

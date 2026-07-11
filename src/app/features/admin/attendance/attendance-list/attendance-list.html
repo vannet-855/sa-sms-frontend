@@ -1,0 +1,555 @@
+<div class="flex min-h-screen bg-slate-950">
+    <app-sidebar [navGroups]="navGroups" [user]="sidebarUser()" portalRole="ADMIN PORTAL">
+    </app-sidebar>
+
+    <main class="flex-1 overflow-y-auto p-6">
+        <!-- Header -->
+        <div class="mb-1 text-xs text-slate-600">
+            <span>Admin</span> / <span class="text-emerald-400">Attendance</span>
+        </div>
+        <div class="mb-4 justify-between sm:mb-6 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <h1 class="text-xl font-bold text-white">Attendance Management</h1>
+            <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+                <div class="relative">
+                    <i
+                        class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-xs text-slate-600"></i>
+                    <input type="text" placeholder="Search student name or code..."
+                        (input)="onSearch($any($event.target).value)"
+                        class="w-56 rounded-lg border border-slate-800 bg-slate-900/60 py-2 pl-9 pr-3 text-sm text-slate-300 placeholder-slate-600 outline-none focus:border-emerald-500" />
+                </div>
+
+                <!-- Schedule Filter -->
+                <div class="relative inline-block text-left">
+                    <select (change)="setScheduleFilter($any($event.target).value)"
+                        class="rounded-lg border border-slate-800 bg-slate-900/60 px-3.5 py-2 text-sm text-slate-300 outline-none focus:border-emerald-500">
+                        <option value="">All Schedules</option>
+                        @for (s of schedules(); track s.id) {
+                        <option [value]="s.id">{{ s.name }} — {{ s.course_name }}</option>
+                        }
+                    </select>
+                </div>
+
+                <!-- Status Filter -->
+                <div class="relative inline-block text-left">
+                    <select (change)="setStatusFilter($any($event.target).value)"
+                        class="rounded-lg border border-slate-800 bg-slate-900/60 px-3.5 py-2 text-sm text-slate-300 outline-none focus:border-emerald-500">
+                        <option value="">All Status</option>
+                        @for (st of statusOptions; track st) {
+                        <option [value]="st">{{ st }}</option>
+                        }
+                    </select>
+                </div>
+
+                <button (click)="openCreateModal()"
+                    class="flex items-center gap-2 rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:opacity-90">
+                    <i class="fa-solid fa-plus"></i> Add New
+                </button>
+            </div>
+        </div>
+
+        <div class="rounded-xl border border-slate-800 bg-slate-900/40 animate-fade-in">
+
+            <!-- Loading -->
+            @if (loading()) {
+            <div class="flex h-64 items-center justify-center text-slate-500">
+                <i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Loading...
+            </div>
+            }
+
+            <!-- Error -->
+            @if (error()) {
+            <div class="m-5 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+                {{ error() }}
+            </div>
+            }
+
+            <!-- Bulk Action Bar -->
+            @if (selectedCount() > 0) {
+            <div class="flex items-center justify-between border-b border-slate-800/60 px-5 py-2.5 bg-slate-900/80">
+                <span class="text-sm text-slate-300">
+                    <span class="font-semibold text-emerald-400">{{ selectedCount() }}</span> record(s) selected
+                    <button (click)="clearSelection()"
+                        class="ml-2 text-[11px] text-slate-500 hover:text-slate-300 underline">Clear</button>
+                </span>
+                <button (click)="openBulkDeleteModal()"
+                    class="flex items-center gap-1.5 rounded-lg bg-red-500/20 px-3.5 py-1.5 text-sm font-medium text-red-400 hover:bg-red-500/30">
+                    <i class="fa-solid fa-trash text-xs"></i> Delete Selected
+                </button>
+            </div>
+            }
+
+            <!-- Table -->
+            @if (!loading() && !error()) {
+
+            <div class="max-h-[520px] overflow-auto custom-scrollbar">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-left text-sm">
+                        <thead class="sticky top-0 z-10 bg-slate-900">
+                            <tr class="text-[10px] uppercase tracking-wider text-slate-600">
+                                <th class="w-10 px-4 py-3">
+                                    <input type="checkbox" [checked]="isAllSelected()" (change)="toggleSelectAll()"
+                                        class="h-4 w-4 cursor-pointer rounded border-slate-600 bg-slate-800 text-emerald-500 accent-emerald-500 transition-colors focus:ring-2 focus:ring-emerald-500 focus:ring-offset-0" />
+                                </th>
+                                <th class="px-4 py-3 font-medium">ID</th>
+                                <th class="py-3 font-medium w-[180px]">Student</th>
+                                <th class="py-3 font-medium">Course</th>
+                                <th class="py-3 font-medium">Group</th>
+                                <th class="py-3 font-medium">Date</th>
+                                <th class="py-3 font-medium">Time</th>
+                                <th class="py-3 font-medium">Status</th>
+                                <th class="py-3 font-medium">Remark</th>
+                                <th class="py-3 font-medium">Taken By</th>
+                                <th class="px-4 py-3 text-right font-medium">Actions</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            @for (r of filteredRecords(); track r.attendance_id) {
+                            <tr class="border-t border-slate-800/60 hover:bg-slate-800/20"
+                                [class.bg-emerald-900/10]="selectedIds().has(r.attendance_id)">
+                                <td class="px-2 py-3">
+                                    <input type="checkbox" [checked]="selectedIds().has(r.attendance_id)"
+                                        (change)="toggleSelect(r.attendance_id)"
+                                        class="h-4 w-4 rounded border-slate-700 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
+                                </td>
+                                <td class="px-4 py-3 text-slate-500">{{ r.attendance_id }}</td>
+                                <td class="py-3">
+                                    <div class="flex items-center gap-2.5">
+                                        <div
+                                            class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-800 text-[10px] font-semibold text-slate-400">
+                                            {{ initials(r.student_full_name || '') }}
+                                        </div>
+                                        <div class="min-w-0">
+                                            <p class="text-slate-200 font-medium truncate max-w-[140px]">{{
+                                                r.student_full_name }}</p>
+                                            @if (r.student_code) {
+                                            <p class="text-[11px] text-slate-500">{{ r.student_code }}</p>
+                                            }
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="text-slate-400 text-[13px] max-w-[140px] truncate">{{ r.course_name || '—' }}
+                                </td>
+                                <td class="text-slate-400">{{ r.group_name || '—' }}</td>
+                                <td class="text-slate-400 text-[13px]">{{ r.attendance_date | date:'mediumDate' }}</td>
+                                <td class="text-slate-400 text-[13px]">
+                                    @if (r.start_time) {
+                                    {{ r.start_time }} — {{ r.end_time }}
+                                    } @else { — }
+                                </td>
+                                <td>
+                                    <span class="rounded-full px-2 py-0.5 text-[11px] font-medium"
+                                        [class]="statusClass(r.status)">
+                                        {{ r.status }}
+                                    </span>
+                                </td>
+                                <td class="text-slate-400 text-[13px] max-w-[120px] truncate">{{ r.remark || '—' }}</td>
+                                <td class="text-slate-400 text-[13px]">{{ r.teacher_name || '—' }}</td>
+                                <td class="px-4 py-3">
+                                    <div class="flex justify-end gap-1.5">
+                                        <button (click)="openUpdateModal(r)"
+                                            class="flex h-7 w-7 items-center justify-center rounded-md border border-slate-800 text-emerald-400 hover:border-emerald-500/50">
+                                            <i class="fa-solid fa-pen text-xs"></i>
+                                        </button>
+                                        <button (click)="openDeleteModal(r.attendance_id, r.student_full_name || '')"
+                                            class="flex h-7 w-7 items-center justify-center rounded-md border border-slate-800 text-red-400 hover:border-red-500/50">
+                                            <i class="fa-solid fa-trash text-xs"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            } @empty {
+                            <tr>
+                                <td colspan="11" class="px-4 py-10 text-center text-slate-600">
+                                    <i class="fa-solid fa-inbox mb-2 block text-lg"></i>
+                                    No attendance records found
+                                </td>
+                            </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Footer / Pagination -->
+            <div class="border-t border-slate-800/60 px-5 py-3">
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] text-slate-600">
+                        Showing page {{ page() }} of {{ totalPages() }} — {{ total() }} total records
+                    </span>
+                    <nav class="inline-flex rounded-lg overflow-hidden border border-slate-700">
+                        <button [disabled]="page() === 1 || loading()" (click)="onPageChange(page()-1)"
+                            class="px-3 py-2 bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-40">«</button>
+                        <div class="px-4 py-2 bg-slate-950 text-slate-300">{{ page() }} / {{ totalPages() }}</div>
+                        <button [disabled]="page() >= totalPages() || loading()" (click)="onPageChange(page()+1)"
+                            class="px-3 py-2 bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-40">»</button>
+                    </nav>
+                </div>
+            </div>
+            }
+
+        </div>
+
+        <!-- ========== TAKE ATTENDANCE MODAL ========== -->
+        @if (showTakeAttendanceModal()) {
+        <div class="animate-fade-in fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            (click)="closeTakeAttendanceModal()">
+            <div class="w-full max-w-4xl rounded-xl border border-slate-800 bg-slate-900 p-6 shadow-2xl overflow-y-auto max-h-[90vh]"
+                (click)="$event.stopPropagation()">
+
+                <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
+                    <h3 class="text-lg font-semibold text-slate-200">
+                        <i class="fa-solid fa-clipboard-check mr-2 text-emerald-400"></i>
+                        Take Attendance
+                    </h3>
+                    <button (click)="closeTakeAttendanceModal()" class="text-slate-400 hover:text-slate-200">
+                        <i class="fa-solid fa-xmark text-xl"></i>
+                    </button>
+                </div>
+
+                <form [formGroup]="takeAttendanceForm">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <!-- schedule_id * -->
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Schedule <span
+                                    class="text-rose-500">*</span></label>
+                            <select formControlName="schedule_id" (change)="onScheduleSelected()"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                                <option [value]="null">— Select Schedule —</option>
+                                @for (s of schedules(); track s.id) {
+                                <option [value]="s.id">{{ s.name }} — {{ s.course_name }} ({{ s.class_code }})</option>
+                                }
+                            </select>
+                        </div>
+
+                        <!-- attendance_date * -->
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Date <span
+                                    class="text-rose-500">*</span></label>
+                            <input type="date" formControlName="attendance_date" (change)="onScheduleSelected()"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none" />
+                        </div>
+
+                        <!-- default_status -->
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Default Status</label>
+                            <div class="flex gap-2">
+                                <select formControlName="default_status"
+                                    (change)="setAllStatus($any($event.target).value)"
+                                    class="flex-1 rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                                    @for (st of statusOptions; track st) {
+                                    <option [value]="st">{{ st }}</option>
+                                    }
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+
+                <!-- Students list header -->
+                @if (attendanceStudents().length > 0) {
+                <div class="border-t border-slate-800 pt-4">
+                    <div class="mb-3 flex items-center justify-between">
+                        <span class="text-sm font-medium text-slate-300">
+                            <span class="text-emerald-400">{{ attendanceStudents().length }}</span> student(s)
+                        </span>
+                    </div>
+
+                    <div class="max-h-[300px] overflow-auto custom-scrollbar">
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full text-left text-sm">
+                                <thead class="sticky top-0 z-10 bg-slate-900">
+                                    <tr class="text-[10px] uppercase tracking-wider text-slate-600">
+                                        <th class="py-2 pr-2 font-medium">#</th>
+                                        <th class="py-2 px-2 font-medium">Student</th>
+                                        <th class="py-2 px-2 font-medium">Code</th>
+                                        <th class="py-2 px-2 font-medium w-28">Status</th>
+                                        <th class="py-2 px-2 font-medium">Remark</th>
+                                        <th class="py-2 pl-2 font-medium w-10"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @for (s of attendanceStudents(); track s.student_id; let i = $index) {
+                                    <tr class="border-t border-slate-800/60">
+                                        <td class="py-2 pr-2 text-slate-500 text-[13px]">{{ i + 1 }}</td>
+                                        <td class="py-2 px-2 text-slate-200 font-medium">{{ s.student_full_name }}</td>
+                                        <td class="py-2 px-2 text-slate-400 text-[13px]">{{ s.student_code }}</td>
+                                        <td class="py-2 px-2">
+                                            <select [(ngModel)]="s.status" [ngModelOptions]="{standalone: true}"
+                                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 focus:border-emerald-500 focus:outline-none">
+                                                @for (st of statusOptions; track st) {
+                                                <option [value]="st">{{ st }}</option>
+                                                }
+                                            </select>
+                                        </td>
+                                        <td class="py-2 px-2">
+                                            <input type="text" [(ngModel)]="s.remark"
+                                                [ngModelOptions]="{standalone: true}" placeholder="—"
+                                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 placeholder-slate-600 focus:border-emerald-500 focus:outline-none" />
+                                        </td>
+                                        <td class="py-2 pl-2">
+                                            <button (click)="removeAttendanceStudent(i)"
+                                                class="flex h-6 w-6 items-center justify-center rounded-md text-red-400 hover:bg-red-500/10">
+                                                <i class="fa-solid fa-xmark text-xs"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end gap-3 border-t border-slate-800 mt-4 pt-4">
+                        <button type="button" (click)="closeTakeAttendanceModal()" [disabled]="isSubmittingAttendance()"
+                            class="rounded-lg border border-slate-800 px-4 py-2 text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200 disabled:opacity-60">Cancel</button>
+                        <button type="button" (click)="onSubmitAttendance()"
+                            [disabled]="isSubmittingAttendance() || takeAttendanceForm.invalid"
+                            class="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                            @if (isSubmittingAttendance()) {
+                            <i class="fa-solid fa-spinner animate-spin"></i> Saving...
+                            } @else { <i class="fa-solid fa-floppy-disk"></i> Save Attendance }
+                        </button>
+                    </div>
+                </div>
+                } @else {
+                <div class="border-t border-slate-800 pt-8 pb-6 text-center text-slate-600">
+                    <i class="fa-solid fa-clipboard-list mb-2 block text-lg"></i>
+                    <p class="mb-4">Select a schedule & date, then load enrolled students to begin.</p>
+                    <button type="button" (click)="loadEnrolledStudents()"
+                        class="inline-flex items-center gap-2 rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-slate-300 hover:bg-slate-700 hover:text-white">
+                        <i class="fa-solid fa-users"></i> Load Enrolled Students
+                    </button>
+                </div>
+                }
+            </div>
+        </div>
+        }
+
+        <!-- ========== CREATE ATTENDANCE MODAL (with student search) ========== -->
+        @if (showCreateModal()) {
+        <div class="animate-fade-in fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            (click)="closeCreateModal()">
+            <div class="w-full max-w-lg rounded-xl border border-slate-800 bg-slate-900 p-6 shadow-2xl"
+                (click)="$event.stopPropagation()">
+
+                <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
+                    <h3 class="text-lg font-semibold text-slate-200">
+                        <i class="fa-solid fa-plus mr-2 text-emerald-400"></i>
+                        Create Attendance Record
+                    </h3>
+                    <button (click)="closeCreateModal()" class="text-slate-400 hover:text-slate-200">
+                        <i class="fa-solid fa-xmark text-xl"></i>
+                    </button>
+                </div>
+
+                <form [formGroup]="createForm" (ngSubmit)="onSubmitCreate()">
+                    <div class="grid grid-cols-1 gap-4">
+
+                        <!-- Student (search) -->
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Student <span
+                                    class="text-rose-500">*</span></label>
+                            <input type="text" placeholder="Search by name, phone, code, or group..."
+                                (input)="onCreateStudentSearch($any($event.target).value)"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 focus:border-emerald-500 focus:outline-none" />
+                            @if (createSearchResults().length > 0) {
+                            <div class="mt-1 max-h-40 overflow-y-auto rounded-lg border border-slate-800 bg-slate-950">
+                                @for (s of createSearchResults(); track s.id) {
+                                <button type="button" (click)="selectCreateStudent(s.id, s.name)"
+                                    class="w-full px-3 py-2 text-left text-sm text-slate-300 hover:bg-emerald-500/10 hover:text-emerald-400 transition flex items-center justify-between">
+                                    <span>{{ s.name }}</span>
+                                    <span class="text-[11px] text-slate-500">{{ s.code }} {{ s.phone ? '• ' + s.phone :
+                                        '' }} {{ s.groupName ? '• ' + s.groupName : '' }}</span>
+                                </button>
+                                }
+                            </div>
+                            }
+                            @if (selectedCreateStudentName()) {
+                            <p class="mt-1 text-xs text-emerald-400">
+                                <i class="fa-solid fa-check mr-1"></i> {{ selectedCreateStudentName() }}
+                            </p>
+                            }
+                            <input type="hidden" formControlName="student_id" />
+                            @if (createForm.get('student_id')?.invalid && createForm.get('student_id')?.touched) {
+                            <p class="mt-1 text-xs text-rose-400">Student is required.</p>
+                            }
+                        </div>
+
+                        <!-- Schedule -->
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Schedule <span
+                                    class="text-rose-500">*</span></label>
+                            <select formControlName="schedule_id"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                                <option [value]="null">— Select Schedule —</option>
+                                @for (s of schedules(); track s.id) {
+                                <option [value]="s.id">{{ s.name }} — {{ s.course_name }} ({{ s.class_code }})</option>
+                                }
+                            </select>
+                            @if (createForm.get('schedule_id')?.invalid && createForm.get('schedule_id')?.touched) {
+                            <p class="mt-1 text-xs text-rose-400">Schedule is required.</p>
+                            }
+                        </div>
+
+                        <!-- Date -->
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Attendance Date <span
+                                    class="text-rose-500">*</span></label>
+                            <input type="date" formControlName="attendance_date"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none" />
+                            @if (createForm.get('attendance_date')?.invalid &&
+                            createForm.get('attendance_date')?.touched) {
+                            <p class="mt-1 text-xs text-rose-400">Date is required.</p>
+                            }
+                        </div>
+
+                        <!-- Status -->
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Status <span
+                                    class="text-rose-500">*</span></label>
+                            <select formControlName="status"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                                @for (st of statusOptions; track st) {
+                                <option [value]="st">{{ st }}</option>
+                                }
+                            </select>
+                        </div>
+
+                        <!-- Remark -->
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Remark</label>
+                            <textarea formControlName="remark" rows="2"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end gap-3 border-t border-slate-800 mt-6 pt-4">
+                        <button type="button" (click)="closeCreateModal()" [disabled]="isCreating()"
+                            class="rounded-lg border border-slate-800 px-4 py-2 text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200 disabled:opacity-60">Cancel</button>
+                        <button type="submit" [disabled]="createForm.invalid || isCreating()"
+                            class="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                            @if (isCreating()) {
+                            <i class="fa-solid fa-spinner animate-spin"></i> Creating...
+                            } @else { <i class="fa-solid fa-floppy-disk"></i> Create Record }
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        }
+
+        <!-- ========== UPDATE MODAL ========== -->
+        @if (showUpdateModal()) {
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            (click)="closeUpdateModal()">
+            <div class="w-full max-w-lg rounded-xl border border-slate-800 bg-slate-900 p-6 shadow-2xl"
+                (click)="$event.stopPropagation()">
+
+                <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
+                    <h3 class="text-lg font-semibold text-slate-200">
+                        <i class="fa-solid fa-pen mr-2 text-emerald-400"></i>
+                        Edit Attendance Record
+                    </h3>
+                    <button (click)="closeUpdateModal()" class="text-slate-400 hover:text-slate-200">
+                        <i class="fa-solid fa-xmark text-xl"></i>
+                    </button>
+                </div>
+
+                <form [formGroup]="updateForm" (ngSubmit)="onSubmitUpdate()">
+                    <div class="grid grid-cols-1 gap-4">
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Status <span
+                                    class="text-rose-500">*</span></label>
+                            <select formControlName="status"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                                @for (st of statusOptions; track st) {
+                                <option [value]="st">{{ st }}</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Remark</label>
+                            <textarea formControlName="remark" rows="2"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end gap-3 border-t border-slate-800 mt-6 pt-4">
+                        <button type="button" (click)="closeUpdateModal()"
+                            class="rounded-lg border border-slate-800 px-4 py-2 text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200">Cancel</button>
+                        <button type="submit" [disabled]="updateForm.invalid || isUpdating()"
+                            class="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                            @if (isUpdating()) {
+                            <i class="fa-solid fa-spinner animate-spin"></i> Saving...
+                            } @else { <i class="fa-solid fa-floppy-disk"></i> Save }
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        }
+
+        <!-- ========== BULK DELETE MODAL ========== -->
+        @if (showBulkDeleteModal()) {
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+            (click)="closeBulkDeleteModal()">
+            <div class="w-full max-w-sm rounded-2xl border border-red-500/20 bg-slate-900 p-6 shadow-2xl"
+                (click)="$event.stopPropagation()">
+                <div class="flex flex-col items-center text-center">
+                    <div class="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-500/10">
+                        <i class="fa-solid fa-trash text-xl text-red-400"></i>
+                    </div>
+                    <p class="mb-1 text-[11px] font-semibold tracking-wide text-red-400">CONFIRM BULK DELETE</p>
+                    <h2 class="mb-2 text-lg font-bold text-white">Delete {{ selectedCount() }} Records?</h2>
+                    <p class="mb-5 text-sm text-slate-400">
+                        Are you sure you want to permanently delete
+                        <span class="font-semibold text-slate-200">{{ selectedCount() }} attendance records</span>?
+                    </p>
+                    <div class="flex w-full gap-3">
+                        <button type="button" (click)="closeBulkDeleteModal()" [disabled]="isBulkDeleting()"
+                            class="flex-1 rounded-lg border border-slate-700 px-4 py-2.5 text-sm font-medium text-slate-300 hover:border-slate-600 disabled:opacity-60">Cancel</button>
+                        <button type="button" (click)="confirmBulkDelete()" [disabled]="isBulkDeleting()"
+                            class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-red-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-60">
+                            @if (isBulkDeleting()) { <i class="fa-solid fa-circle-notch fa-spin"></i> }
+                            Delete All
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        }
+
+        <!-- ========== DELETE MODAL ========== -->
+        @if (showDeleteModal()) {
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+            (click)="closeDeleteModal()">
+            <div class="w-full max-w-sm rounded-2xl border border-red-500/20 bg-slate-900 p-6 shadow-2xl"
+                (click)="$event.stopPropagation()">
+                <div class="flex flex-col items-center text-center">
+                    <div class="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-500/10">
+                        <i class="fa-solid fa-trash text-xl text-red-400"></i>
+                    </div>
+                    <p class="mb-1 text-[11px] font-semibold tracking-wide text-red-400">CONFIRM DELETE</p>
+                    <h2 class="mb-2 text-lg font-bold text-white">Delete Record?</h2>
+                    <p class="mb-5 text-sm text-slate-400">
+                        Are you sure you want to permanently delete this attendance record?
+                    </p>
+                    <div class="flex w-full gap-3">
+                        <button type="button" (click)="closeDeleteModal()" [disabled]="isDeleting()"
+                            class="flex-1 rounded-lg border border-slate-700 px-4 py-2.5 text-sm font-medium text-slate-300 hover:border-slate-600 disabled:opacity-60">Cancel</button>
+                        <button type="button" (click)="confirmDelete()" [disabled]="isDeleting()"
+                            class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-red-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-60">
+                            @if (isDeleting()) { <i class="fa-solid fa-circle-notch fa-spin"></i> }
+                            Delete
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        }
+
+    </main>
+</div>

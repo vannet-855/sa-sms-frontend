@@ -1,0 +1,467 @@
+<div class="flex min-h-screen bg-slate-950">
+    <app-sidebar [navGroups]="navGroups" [user]="sidebarUser()" portalRole="ADMIN PORTAL">
+    </app-sidebar>
+
+    <main class="flex-1 overflow-y-auto p-6">
+        <!-- Header -->
+        <div class="mb-1 text-xs text-slate-600">
+            <span>Admin</span> / <span class="text-emerald-400">Payments</span>
+        </div>
+        <div class="mb-4 sm:mb-6  justify-between flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <h1 class="text-xl font-bold text-white">Payment Management</h1>
+            <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+
+                <!-- Group Filter -->
+                <div class="relative inline-block text-left">
+                    <select (change)="setGroupFilter($any($event.target).value)"
+                        class="rounded-lg border border-slate-800 bg-slate-900/60 px-3.5 py-2 text-sm text-slate-300 outline-none focus:border-emerald-500">
+                        <option value="">All Groups</option>
+                        @for (g of groups(); track g.id) {
+                        <option [value]="g.id">{{ g.name }}</option>
+                        }
+                    </select>
+                </div>
+
+                <!-- Search by name / phone / code / group -->
+                <div class="relative">
+                    <input type="text" placeholder="Search name / phone / code / group..."
+                        (input)="onSearchInput($any($event.target).value)"
+                        class="w-64 rounded-lg border border-slate-800 bg-slate-900/60 px-3.5 py-2 text-sm text-slate-300 placeholder-slate-600 outline-none focus:border-emerald-500" />
+                    <i class="fa-solid fa-search absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 text-xs"></i>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="rounded-xl border border-slate-800 bg-slate-900/40 animate-fade-in">
+
+            <!-- Loading -->
+            @if (loading()) {
+            <div class="flex h-64 items-center justify-center text-slate-500">
+                <i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Loading...
+            </div>
+            }
+
+            <!-- Error -->
+            @if (error()) {
+            <div class="m-5 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+                {{ error() }}
+            </div>
+            }
+
+            <!-- Student list -->
+            @if (!loading() && !error()) {
+
+            <div class="max-h-[560px] overflow-auto custom-scrollbar">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-left text-sm">
+                        <thead class="sticky top-0 z-10 bg-slate-900">
+                            <tr class="text-[10px] uppercase tracking-wider text-slate-600">
+                                <th class="px-4 py-3 font-medium">#</th>
+                                <th class="py-3 font-medium w-[200px]">Student</th>
+                                <th class="py-3 font-medium">Code</th>
+                                <th class="py-3 font-medium">Phone</th>
+                                <th class="py-3 font-medium">Group</th>
+                                <th class="py-3 font-medium">Status</th>
+                                <th class="py-3 font-medium text-right">Total Paid</th>
+                                <th class="px-4 py-3 text-right font-medium">Action</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            @for (s of filteredStudents(); track s.id) {
+                            <tr class="border-t border-slate-800/60 hover:bg-slate-800/20">
+                                <td class="px-4 py-3 text-slate-500">{{ s.id }}</td>
+                                <td class="py-3">
+                                    <div class="flex items-center gap-2.5">
+                                        <div
+                                            class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-800 text-xs font-semibold text-slate-400">
+                                            {{ initials(s.name) }}
+                                        </div>
+                                        <div class="min-w-0">
+                                            <p class="text-slate-200 font-medium truncate">{{ s.name }}</p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="text-slate-500 font-mono text-[13px]">{{ s.code || '—' }}</td>
+                                <td class="text-slate-400 text-[13px]">{{ s.phone || '—' }}</td>
+                                <td class="text-slate-400 text-[13px]">{{ s.groupName || '—' }}</td>
+                                <td>
+                                    <span class="rounded-full px-2 py-0.5 text-[11px] font-medium"
+                                        [class]="paymentStatusClass(s.hasPaid, s.paymentCount)">
+                                        {{ paymentStatusLabel(s.hasPaid, s.paymentCount) }}
+                                    </span>
+                                    @if (s.paymentCount > 0) {
+                                    <span class="ml-1.5 text-[10px] text-slate-600">({{ s.paymentCount }})</span>
+                                    }
+                                </td>
+                                <td class="text-right text-slate-200 font-semibold">{{ formatCurrency(s.totalPaid) }}
+                                </td>
+                                <td class="px-4 py-3">
+                                    <div class="flex justify-end gap-1.5">
+                                        <button (click)="openAddForStudent(s)"
+                                            class="flex h-7 w-7 items-center justify-center rounded-md border border-slate-800 text-emerald-400 hover:border-emerald-500/50"
+                                            title="Add payment for this student">
+                                            <i class="fa-solid fa-dollar-sign text-xs"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            } @empty {
+                            <tr>
+                                <td colspan="8" class="px-4 py-16 text-center text-slate-600">
+                                    <i class="fa-solid fa-users mb-2 block text-lg"></i>
+                                    <p>No students found</p>
+                                    @if (searchQuery()) {
+                                    <p class="mt-1 text-xs text-slate-500">Try a different search term</p>
+                                    }
+                                </td>
+                            </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="border-t border-slate-800/60 px-5 py-3">
+                <span class="text-[11px] text-slate-600">
+                    {{ filteredStudents().length }} student(s) — Total Paid:
+                    <span class="text-emerald-400 font-semibold">{{ formatCurrency(totalAllPaid()) }}</span>
+                </span>
+            </div>
+            }
+
+        </div>
+
+        <!-- ========== ADD PAYMENT MODAL ========== -->
+        @if (showAddModal()) {
+        <div class="animate-fade-in fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            (click)="closeAddModal()">
+            <div class="w-full max-w-2xl rounded-xl border border-slate-800 bg-slate-900 p-6 shadow-2xl overflow-y-auto max-h-[90vh]"
+                (click)="$event.stopPropagation()">
+
+                <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
+                    <h3 class="text-lg font-semibold text-slate-200">Add New Payment</h3>
+                    <button (click)="closeAddModal()" class="text-slate-400 hover:text-slate-200">
+                        <i class="fa-solid fa-xmark text-xl"></i>
+                    </button>
+                </div>
+
+                <form [formGroup]="paymentForm" (ngSubmit)="onSubmitPayment()">
+                    <div class="grid grid-cols-1 grid-cols-1 md:grid-cols-2 gap-4">
+
+                        <!-- student_id * (search) -->
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Student <span
+                                    class="text-rose-500">*</span></label>
+                            <input type="text" placeholder="Type to search by name, phone, code, or group..."
+                                (input)="onAddStudentSearch($any($event.target).value)"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 focus:border-emerald-500 focus:outline-none" />
+                            @if (addSearchResults().length > 0) {
+                            <div class="mt-1 max-h-40 overflow-y-auto rounded-lg border border-slate-800 bg-slate-950">
+                                @for (s of addSearchResults(); track s.id) {
+                                <button type="button" (click)="selectStudentForAdd(s.id, s.name)"
+                                    class="w-full px-3 py-2 text-left text-sm text-slate-300 hover:bg-emerald-500/10 hover:text-emerald-400 transition flex items-center justify-between">
+                                    <span>{{ s.name }}</span>
+                                    <span class="text-[11px] text-slate-500">{{ s.code }} {{ s.phone ? '• ' + s.phone :
+                                        '' }} {{ s.groupName ? '• ' + s.groupName : '' }}</span>
+                                </button>
+                                }
+                            </div>
+                            }
+                            @if (selectedAddStudentName()) {
+                            <p class="mt-1 text-xs text-emerald-400">
+                                <i class="fa-solid fa-check mr-1"></i> {{ selectedAddStudentName() }}
+                            </p>
+                            }
+                            <input type="hidden" formControlName="student_id" />
+                            @if (paymentForm.get('student_id')?.invalid && paymentForm.get('student_id')?.touched) {
+                            <p class="mt-1 text-xs text-rose-400">Student is required.</p>
+                            }
+                        </div>
+
+                        <!-- amount * -->
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Amount ($) <span
+                                    class="text-rose-500">*</span></label>
+                            <input type="number" formControlName="amount" min="0" step="0.01"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none" />
+                            @if (paymentForm.get('amount')?.invalid && paymentForm.get('amount')?.touched) {
+                            <p class="mt-1 text-xs text-rose-400">Valid amount is required.</p>
+                            }
+                        </div>
+
+                        <!-- payment_scope * -->
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Scope <span
+                                    class="text-rose-500">*</span></label>
+                            <select formControlName="payment_scope"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                                @for (sc of paymentScopes; track sc) {
+                                <option [value]="sc">{{ sc }}</option>
+                                }
+                            </select>
+                        </div>
+
+                        <!-- academic_year_id * -->
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Academic Year <span
+                                    class="text-rose-500">*</span></label>
+                            <select formControlName="academic_year_id"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                                <option [value]="null">— Select —</option>
+                                @for (y of academicYears(); track y.id) {
+                                <option [value]="y.id">{{ y.name }}</option>
+                                }
+                            </select>
+                            @if (paymentForm.get('academic_year_id')?.invalid &&
+                            paymentForm.get('academic_year_id')?.touched) {
+                            <p class="mt-1 text-xs text-rose-400">Academic year is required.</p>
+                            }
+                        </div>
+
+                        <!-- semester_id -->
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Semester</label>
+                            <select formControlName="semester_id"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                                <option [value]="null">— None —</option>
+                                @for (sem of semesters(); track sem.id) {
+                                <option [value]="sem.id">{{ sem.name }}</option>
+                                }
+                            </select>
+                        </div>
+
+                        <!-- payment_type -->
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Payment Type</label>
+                            <select formControlName="payment_type"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                                @for (pt of paymentTypes; track pt) {
+                                <option [value]="pt">{{ pt }}</option>
+                                }
+                            </select>
+                        </div>
+
+                        <!-- payment_method -->
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Payment Method</label>
+                            <select formControlName="payment_method"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                                @for (pm of paymentMethods; track pm) {
+                                <option [value]="pm">{{ pm }}</option>
+                                }
+                            </select>
+                        </div>
+
+                        <!-- status -->
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Status</label>
+                            <select formControlName="status"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                                @for (st of statusOptions; track st) {
+                                <option [value]="st">{{ st }}</option>
+                                }
+                            </select>
+                        </div>
+
+                        <!-- paid_date -->
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Payment Date</label>
+                            <input type="date" formControlName="paid_date"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none" />
+                        </div>
+
+                        <!-- reference_code -->
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Reference Code</label>
+                            <input type="text" formControlName="reference_code"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none" />
+                        </div>
+
+                        <!-- note (full width) -->
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Note</label>
+                            <textarea formControlName="note" rows="2"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end gap-3 border-t border-slate-800 mt-6 pt-4">
+                        <button type="button" (click)="closeAddModal()"
+                            class="rounded-lg border border-slate-800 px-4 py-2 text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200">Cancel</button>
+                        <button type="submit" [disabled]="paymentForm.invalid || isSubmitting()"
+                            class="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                            @if (isSubmitting()) {
+                            <i class="fa-solid fa-spinner animate-spin"></i> Saving...
+                            } @else { Save }
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        }
+
+        <!-- ========== EDIT PAYMENT MODAL ========== -->
+        @if (showEditModal()) {
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            (click)="closeEditModal()">
+            <div class="w-full max-w-2xl rounded-xl border border-slate-800 bg-slate-900 p-6 shadow-2xl overflow-y-auto max-h-[90vh]"
+                (click)="$event.stopPropagation()">
+
+                <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
+                    <h3 class="text-lg font-semibold text-slate-200">
+                        <i class="fa-solid fa-pen mr-2 text-emerald-400"></i>
+                        Edit Payment
+                    </h3>
+                    <button (click)="closeEditModal()" class="text-slate-400 hover:text-slate-200">
+                        <i class="fa-solid fa-xmark text-xl"></i>
+                    </button>
+                </div>
+
+                <form [formGroup]="editForm" (ngSubmit)="onSubmitEdit()">
+                    <div class="grid grid-cols-1 grid-cols-1 md:grid-cols-2 gap-4">
+
+                        <!-- Student (readonly) -->
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Student</label>
+                            <input type="text" readonly [value]="editTarget()?.student_name || ''"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950/60 px-3 py-2 text-sm text-slate-400 cursor-not-allowed" />
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Amount ($) <span
+                                    class="text-rose-500">*</span></label>
+                            <input type="number" formControlName="amount" min="0" step="0.01"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none" />
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Scope <span
+                                    class="text-rose-500">*</span></label>
+                            <select formControlName="payment_scope"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                                @for (sc of paymentScopes; track sc) {
+                                <option [value]="sc">{{ sc }}</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Academic Year <span
+                                    class="text-rose-500">*</span></label>
+                            <select formControlName="academic_year_id"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                                @for (y of academicYears(); track y.id) {
+                                <option [value]="y.id">{{ y.name }}</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Semester</label>
+                            <select formControlName="semester_id"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                                <option [value]="null">— None —</option>
+                                @for (sem of semesters(); track sem.id) {
+                                <option [value]="sem.id">{{ sem.name }}</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Payment Type</label>
+                            <select formControlName="payment_type"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                                @for (pt of paymentTypes; track pt) {
+                                <option [value]="pt">{{ pt }}</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Payment Method</label>
+                            <select formControlName="payment_method"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                                @for (pm of paymentMethods; track pm) {
+                                <option [value]="pm">{{ pm }}</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Status</label>
+                            <select formControlName="status"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                                @for (st of statusOptions; track st) {
+                                <option [value]="st">{{ st }}</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Payment Date</label>
+                            <input type="date" formControlName="paid_date"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none" />
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Reference Code</label>
+                            <input type="text" formControlName="reference_code"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none" />
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Note</label>
+                            <textarea formControlName="note" rows="2"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end gap-3 border-t border-slate-800 mt-6 pt-4">
+                        <button type="button" (click)="closeEditModal()"
+                            class="rounded-lg border border-slate-800 px-4 py-2 text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200">Cancel</button>
+                        <button type="submit" [disabled]="editForm.invalid || isUpdating()"
+                            class="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                            @if (isUpdating()) {
+                            <i class="fa-solid fa-spinner animate-spin"></i> Saving...
+                            } @else { <i class="fa-solid fa-floppy-disk"></i> Save }
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        }
+
+        <!-- ========== DELETE MODAL ========== -->
+        @if (showDeleteModal()) {
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+            (click)="closeDeleteModal()">
+            <div class="w-full max-w-sm rounded-2xl border border-red-500/20 bg-slate-900 p-6 shadow-2xl"
+                (click)="$event.stopPropagation()">
+                <div class="flex flex-col items-center text-center">
+                    <div class="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-500/10">
+                        <i class="fa-solid fa-trash text-xl text-red-400"></i>
+                    </div>
+                    <p class="mb-1 text-[11px] font-semibold tracking-wide text-red-400">CONFIRM DELETE</p>
+                    <h2 class="mb-2 text-lg font-bold text-white">Delete Payment?</h2>
+                    <p class="mb-5 text-sm text-slate-400">
+                        Remove payment entry for
+                        <span class="font-semibold text-slate-200">{{ deleteTarget()?.name }}</span>?
+                    </p>
+                    <div class="flex w-full gap-3">
+                        <button type="button" (click)="closeDeleteModal()" [disabled]="isDeleting()"
+                            class="flex-1 rounded-lg border border-slate-700 px-4 py-2.5 text-sm font-medium text-slate-300 hover:border-slate-600 disabled:opacity-60">Cancel</button>
+                        <button type="button" (click)="confirmDelete()" [disabled]="isDeleting()"
+                            class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-red-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-60">
+                            @if (isDeleting()) { <i class="fa-solid fa-circle-notch fa-spin"></i> }
+                            Delete
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        }
+
+    </main>
+</div>

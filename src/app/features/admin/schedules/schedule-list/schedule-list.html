@@ -1,0 +1,629 @@
+<div class="flex min-h-screen bg-slate-950">
+    <app-sidebar [navGroups]="navGroups" [user]="sidebarUser()" portalRole="ADMIN PORTAL">
+    </app-sidebar>
+
+    <main class="flex-1 overflow-y-auto p-6">
+        <!-- Header -->
+        <div class="mb-1 text-xs text-slate-600">
+            <span>Admin</span> / <span class="text-emerald-400">Schedules</span>
+        </div>
+        <div class="mb-4 justify-between sm:mb-6 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <h1 class="text-xl font-bold text-white">Schedule Management</h1>
+            <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+
+                <!-- Day filter chips -->
+                <div class="flex gap-1">
+                    @for (d of days; track d) {
+                    <button (click)="setDayFilter(d)"
+                        class="rounded-full border px-3 py-1.5 text-xs font-medium transition"
+                        [class.bg-emerald-500/15]="selectedDay() === d" [class.text-emerald-400]="selectedDay() === d"
+                        [class.border-emerald-500/50]="selectedDay() === d"
+                        [class.border-slate-700]="selectedDay() !== d" [class.text-slate-400]="selectedDay() !== d"
+                        [class.hover:border-slate-600]="selectedDay() !== d">
+                        {{ d }}
+                    </button>
+                    }
+                </div>
+
+                <!-- Class filter -->
+                <div class="relative inline-block text-left">
+                    <select (change)="setClassFilter($any($event.target).value)"
+                        class="rounded-lg border border-slate-800 bg-slate-900/60 px-3.5 py-2 text-sm text-slate-300 outline-none focus:border-emerald-500">
+                        <option value="">All Classes</option>
+                        @for (c of classes(); track c.id) {
+                        <option [value]="c.id">{{ c.name }}</option>
+                        }
+                    </select>
+                </div>
+
+                @if (selectedDay() || selectedClassId()) {
+                <button (click)="clearFilters()"
+                    class="rounded-lg border border-slate-700 px-3 py-2 text-xs text-slate-400 hover:bg-slate-800">
+                    Clear
+                </button>
+                }
+
+                @if (!showAvailability()) {
+                <button (click)="toggleAvailability()"
+                    class="flex items-center gap-2 rounded-lg border border-cyan-500/50 bg-cyan-500/10 px-4 py-2 text-sm font-semibold text-cyan-400 hover:bg-cyan-500/20">
+                    <i class="fa-solid fa-user-check"></i> Teacher Availability
+                </button>
+                }
+
+                <button (click)="openAddModal()"
+                    class="flex items-center gap-2 rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:opacity-90">
+                    <i class="fa-solid fa-plus"></i> Add Schedule
+                </button>
+            </div>
+        </div>
+
+        <div class="rounded-xl border border-slate-800 bg-slate-900/40 animate-fade-in">
+
+            <!-- Loading -->
+            @if (loading()) {
+            <div class="flex h-64 items-center justify-center text-slate-500">
+                <i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Loading...
+            </div>
+            }
+
+            <!-- Error -->
+            @if (error()) {
+            <div class="m-5 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+                {{ error() }}
+            </div>
+            }
+
+            <!-- Table -->
+            @if (!loading() && !error()) {
+
+            <div class="max-h-[560px] overflow-auto custom-scrollbar">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-left text-sm">
+                        <thead class="sticky top-0 z-10 bg-slate-900">
+                            <tr class="text-[10px] uppercase tracking-wider text-slate-600">
+                                <th class="px-4 py-3 font-medium">ID</th>
+                                <th class="py-3 font-medium w-[220px]">Class</th>
+                                <th class="py-3 font-medium w-20">Day</th>
+                                <th class="py-3 font-medium">Start</th>
+                                <th class="py-3 font-medium">End</th>
+                                <th class="py-3 font-medium">Room</th>
+                                <th class="px-4 py-3 text-right font-medium">Actions</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            @for (s of filteredSchedules(); track s.schedule_id) {
+                            <tr class="border-t border-slate-800/60 hover:bg-slate-800/20">
+                                <td class="px-4 py-3 text-slate-500">{{ s.schedule_id }}</td>
+                                <td class="py-3">
+                                    <div class="min-w-0">
+                                        @if (s.course_name) {
+                                        <p class="text-slate-200 font-medium truncate">{{ s.course_name }}</p>
+                                        <p class="text-[11px] text-slate-500">{{ s.class_code }} · {{ s.group_name }}
+                                        </p>
+                                        } @else {
+                                        <p class="text-slate-400">Class #{{ s.class_id }}</p>
+                                        }
+                                    </div>
+                                </td>
+                                <td class="py-3">
+                                    <span class="rounded-full px-2 py-0.5 text-[11px] font-medium"
+                                        [class]="dayColor(s.day_of_week)">
+                                        {{ s.day_of_week }}
+                                    </span>
+                                </td>
+                                <td class="text-slate-300 font-mono text-[13px]">{{ s.start_time }}</td>
+                                <td class="text-slate-300 font-mono text-[13px]">{{ s.end_time }}</td>
+                                <td class="text-slate-400">{{ s.room || '—' }}</td>
+                                <td class="px-4 py-3">
+                                    <div class="flex justify-end gap-1.5">
+                                        <button (click)="openEditModal(s)"
+                                            class="flex h-7 w-7 items-center justify-center rounded-md border border-slate-800 text-emerald-400 hover:border-emerald-500/50">
+                                            <i class="fa-solid fa-pen text-xs"></i>
+                                        </button>
+                                        <button
+                                            (click)="openDeleteModal(s.schedule_id, s.course_name || 'Schedule #' + s.schedule_id)"
+                                            class="flex h-7 w-7 items-center justify-center rounded-md border border-slate-800 text-red-400 hover:border-red-500/50">
+                                            <i class="fa-solid fa-trash text-xs"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            } @empty {
+                            <tr>
+                                <td colspan="7" class="px-4 py-16 text-center text-slate-600">
+                                    <i class="fa-solid fa-calendar-days mb-2 block text-lg"></i>
+                                    <p>No schedules found</p>
+                                    @if (selectedDay() || selectedClassId()) {
+                                    <p class="mt-1 text-xs text-slate-500">Try clearing the filters</p>
+                                    }
+                                </td>
+                            </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="border-t border-slate-800/60 px-5 py-3">
+                <span class="text-[11px] text-slate-600">
+                    {{ filteredSchedules().length }} schedule(s)
+                </span>
+            </div>
+            }
+
+        </div>
+
+        <!-- ========== TEACHER AVAILABILITY PANEL ========== -->
+        @if (showAvailability()) {
+        <div class="mt-6 rounded-xl border border-cyan-500/30 bg-slate-900/60 animate-fade-in">
+
+            <div class="flex items-center justify-between border-b border-slate-800 px-5 py-4">
+                <div class="flex items-center gap-3">
+                    <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-500/15">
+                        <i class="fa-solid fa-user-check text-cyan-400"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-semibold text-white">Teacher Availability</h3>
+                        <p class="text-[11px] text-slate-500">Check who is free or busy on each day</p>
+                    </div>
+                </div>
+                <button (click)="toggleAvailability()"
+                    class="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-400 hover:border-slate-600 hover:text-slate-200">
+                    <i class="fa-solid fa-xmark mr-1"></i> Close
+                </button>
+            </div>
+
+            <div class="flex gap-2 border-b border-slate-800 px-5 py-3 overflow-x-auto">
+                @for (d of days; track d) {
+                <button (click)="setAvailabilityDay(d)"
+                    class="rounded-full border px-4 py-2 text-xs font-semibold whitespace-nowrap transition"
+                    [class.bg-emerald-500/20]="availabilityDay() === d"
+                    [class.text-emerald-400]="availabilityDay() === d"
+                    [class.border-emerald-500/50]="availabilityDay() === d"
+                    [class.border-slate-700]="availabilityDay() !== d" [class.text-slate-400]="availabilityDay() !== d"
+                    [class.hover:border-slate-600]="availabilityDay() !== d">
+                    {{ d }}
+                </button>
+                }
+            </div>
+
+            @if (availabilityLoading()) {
+            <div class="flex h-40 items-center justify-center text-slate-500">
+                <i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Loading availability...
+            </div>
+            }
+
+            @if (availabilityError()) {
+            <div class="m-5 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+                {{ availabilityError() }}
+            </div>
+            }
+
+            @if (!availabilityLoading() && !availabilityError() && availabilityData(); as data) {
+            @if (!availabilityDay()) {
+            <div class="flex h-40 items-center justify-center text-slate-500">
+                <p>Select a day above to see teacher availability.</p>
+            </div>
+            } @else {
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 p-5 border-b border-slate-800">
+                <div class="rounded-lg bg-slate-800/40 p-3 text-center">
+                    <p class="text-[10px] uppercase tracking-wider text-slate-500 mb-1">Total Teachers</p>
+                    <p class="text-lg font-bold text-white">{{ data.total_teachers }}</p>
+                </div>
+                <div class="rounded-lg bg-red-500/10 p-3 text-center">
+                    <p class="text-[10px] uppercase tracking-wider text-red-400 mb-1">Busy</p>
+                    <p class="text-lg font-bold text-red-400">{{ data.busy_teachers }}</p>
+                </div>
+                <div class="rounded-lg bg-emerald-500/10 p-3 text-center">
+                    <p class="text-[10px] uppercase tracking-wider text-emerald-400 mb-1">Free</p>
+                    <p class="text-lg font-bold text-emerald-400">{{ data.free_teachers }}</p>
+                </div>
+                <div class="rounded-lg bg-slate-800/40 p-3 text-center">
+                    <p class="text-[10px] uppercase tracking-wider text-slate-500 mb-1">Day</p>
+                    <p class="text-lg font-bold text-white">{{ data.day }}</p>
+                </div>
+            </div>
+
+            <div class="max-h-[500px] overflow-y-auto custom-scrollbar p-5">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div>
+                        <div class="flex items-center gap-2 mb-3">
+                            <span class="h-2 w-2 rounded-full bg-red-400"></span>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-red-400">
+                                Busy ({{ data.busy_teachers }})
+                            </h4>
+                        </div>
+                        @for (t of data.teachers; track t.teacher_id) {
+                        @if (t.is_busy) {
+                        <div class="mb-3 rounded-lg border border-red-500/15 bg-slate-800/40 p-3">
+                            <div class="flex items-start justify-between mb-2">
+                                <div>
+                                    <p class="text-sm font-semibold text-slate-200">{{ t.full_name }}</p>
+                                    @if (t.phone) {
+                                    <p class="text-[11px] text-slate-500">{{ t.phone }}</p>
+                                    }
+                                </div>
+                                <span
+                                    class="rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] font-semibold text-red-400">
+                                    {{ t.busy_count }} slot(s)
+                                </span>
+                            </div>
+                            @for (slot of t.busy_slots; track slot.schedule_id) {
+                            <div class="mt-2 rounded-md bg-slate-900/60 px-3 py-2 text-xs">
+                                <div class="flex items-center gap-2 text-slate-300">
+                                    <i class="fa-regular fa-clock text-slate-500"></i>
+                                    <span class="font-mono">{{ slot.start_time }} – {{ slot.end_time }}</span>
+                                </div>
+                                <div
+                                    class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-slate-400">
+                                    @if (slot.course_name) {
+                                    <span class="font-medium text-slate-300">{{ slot.course_name }}</span>
+                                    }
+                                    @if (slot.group_name) {
+                                    <span class="text-slate-500">· {{ slot.group_name }}</span>
+                                    }
+                                    @if (slot.room) {
+                                    <span class="text-slate-500">
+                                        <i class="fa-solid fa-location-dot mr-0.5"></i>{{ slot.room }}
+                                    </span>
+                                    }
+                                </div>
+                            </div>
+                            }
+                        </div>
+                        }
+                        }
+                        @if (data.busy_teachers === 0) {
+                        <div class="rounded-lg border border-dashed border-slate-700 p-6 text-center">
+                            <i class="fa-solid fa-check-circle mb-2 block text-lg text-emerald-500"></i>
+                            <p class="text-xs text-slate-500">No teachers are busy on {{ data.day }}</p>
+                        </div>
+                        }
+                    </div>
+
+                    <div>
+                        <div class="flex items-center gap-2 mb-3">
+                            <span class="h-2 w-2 rounded-full bg-emerald-400"></span>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400">
+                                Free ({{ data.free_teachers }})
+                            </h4>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            @for (t of data.teachers; track t.teacher_id) {
+                            @if (!t.is_busy) {
+                            <div class="rounded-lg border border-emerald-500/10 bg-slate-800/40 p-3">
+                                <p class="text-sm font-medium text-slate-300">{{ t.full_name }}</p>
+                                @if (t.phone) {
+                                <p class="text-[11px] text-slate-500">{{ t.phone }}</p>
+                                }
+                            </div>
+                            }
+                            }
+                        </div>
+                        @if (data.free_teachers === 0) {
+                        <div class="rounded-lg border border-dashed border-slate-700 p-6 text-center">
+                            <i class="fa-solid fa-circle-exclamation mb-2 block text-lg text-amber-500"></i>
+                            <p class="text-xs text-slate-500">All teachers are busy on {{ data.day }}</p>
+                        </div>
+                        }
+                    </div>
+                </div>
+            </div>
+            }
+            }
+
+        </div>
+        }
+
+        <!-- ========== ADD SCHEDULE MODAL (Cascading Form) ========== -->
+        @if (showAddModal()) {
+        <div class="animate-fade-in fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            (click)="closeAddModal()">
+            <div class="w-full max-w-2xl rounded-xl border border-slate-800 bg-slate-900 p-6 shadow-2xl max-h-[90vh] overflow-y-auto"
+                (click)="$event.stopPropagation()">
+
+                <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
+                    <h3 class="text-lg font-semibold text-slate-200">Add New Schedule</h3>
+                    <button (click)="closeAddModal()" class="text-slate-400 hover:text-slate-200">
+                        <i class="fa-solid fa-xmark text-xl"></i>
+                    </button>
+                </div>
+
+                <form [formGroup]="scheduleForm" (ngSubmit)="onSubmitSchedule()">
+                    <!-- Step 1: Academic Year → Semester -->
+                    <div class="mb-5">
+                        <p class="text-[10px] uppercase tracking-wider text-slate-600 mb-3">Step 1 — Select Academic
+                            Period</p>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-400 mb-1">
+                                    Academic Year <span class="text-rose-500">*</span>
+                                </label>
+                                <select (change)="onYearChange($any($event.target).value)"
+                                    class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                                    <option value="">— Select Year —</option>
+                                    @for (y of academicYears(); track y.year_id) {
+                                    <option [value]="y.year_id">{{ y.year_label }}</option>
+                                    }
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-400 mb-1">
+                                    Semester <span class="text-rose-500">*</span>
+                                </label>
+                                <select (change)="onSemesterChange($any($event.target).value)"
+                                    [disabled]="!selectedYearId()"
+                                    class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed">
+                                    <option value="">— Select Semester —</option>
+                                    @for (s of filteredSemesters(); track s.semester_id) {
+                                    <option [value]="s.semester_id">{{ s.semester_name }}</option>
+                                    }
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Class (filtered by semester/year) -->
+                    <div class="mb-5">
+                        <p class="text-[10px] uppercase tracking-wider text-slate-600 mb-3">Step 2 — Select Class</p>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">
+                                Class <span class="text-rose-500">*</span>
+                            </label>
+                            <select formControlName="class_id" (change)="onClassChange($any($event.target).value)"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                                <option [value]="null">— Select Class —</option>
+                                @for (c of filteredClasses(); track c.id) {
+                                <option [value]="c.id">{{ c.name }}</option>
+                                }
+                            </select>
+                            @if (scheduleForm.get('class_id')?.invalid && scheduleForm.get('class_id')?.touched) {
+                            <p class="mt-1 text-xs text-rose-400">Class is required.</p>
+                            }
+
+                            <!-- Auto-filled Teacher & Subject info -->
+                            @if (selectedClassTeacherName()) {
+                            <div class="mt-2 rounded-lg border border-slate-700 bg-slate-800/30 px-3 py-2">
+                                <div class="flex items-start justify-between gap-3">
+                                    <div class="min-w-0 flex-1">
+                                        @if (selectedClassCourseName()) {
+                                        <p class="text-sm font-medium text-slate-200">
+                                            <i class="fa-solid fa-book mr-1.5 text-emerald-400 text-xs"></i>
+                                            {{ selectedClassCourseName() }}
+                                        </p>
+                                        }
+                                        <p class="text-xs text-slate-400 mt-0.5">
+                                            <i class="fa-solid fa-user-tie mr-1.5 text-sky-400 text-xs"></i>
+                                            {{ selectedClassTeacherName() }}
+                                        </p>
+                                    </div>
+                                    <!-- Teacher availability badge -->
+                                    @if (teacherAvailabilityStatus() === 'loading') {
+                                    <span
+                                        class="shrink-0 rounded-full bg-slate-700 px-2.5 py-0.5 text-[10px] text-slate-400">
+                                        <i class="fa-solid fa-circle-notch fa-spin mr-1"></i>Checking...
+                                    </span>
+                                    } @else if (teacherAvailabilityStatus() === 'available') {
+                                    <span
+                                        class="shrink-0 rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-400">
+                                        <i class="fa-solid fa-check-circle mr-1"></i>Available
+                                    </span>
+                                    } @else if (teacherAvailabilityStatus() === 'busy') {
+                                    <span
+                                        class="shrink-0 rounded-full bg-red-500/15 px-2.5 py-0.5 text-[10px] font-semibold text-red-400"
+                                        [title]="teacherAvailabilityDetail()">
+                                        <i class="fa-solid fa-circle-exclamation mr-1"></i>Busy
+                                    </span>
+                                    }
+                                </div>
+                                @if (teacherAvailabilityStatus() === 'busy') {
+                                <p class="mt-1.5 text-[11px] text-red-400/80">{{ teacherAvailabilityDetail() }}</p>
+                                }
+                            </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Day & Time Slot -->
+                    <div class="mb-5">
+                        <p class="text-[10px] uppercase tracking-wider text-slate-600 mb-3">Step 3 — Day & Time</p>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-400 mb-1">
+                                    Day of Week <span class="text-rose-500">*</span>
+                                </label>
+                                <select formControlName="day_of_week" (change)="onDayChange()"
+                                    class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                                    <option value="">— Select Day —</option>
+                                    @for (d of days; track d) {
+                                    <option [value]="d">{{ d === 'Mon' ? 'Monday' : d === 'Tue' ? 'Tuesday' : d ===
+                                        'Wed' ? 'Wednesday' : d === 'Thu' ? 'Thursday' : d === 'Fri' ? 'Friday' : d ===
+                                        'Sat' ? 'Saturday' : d }}</option>
+                                    }
+                                </select>
+                                @if (scheduleForm.get('day_of_week')?.invalid &&
+                                scheduleForm.get('day_of_week')?.touched) {
+                                <p class="mt-1 text-xs text-rose-400">Day is required.</p>
+                                }
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-medium text-slate-400 mb-1">
+                                    Time Slot <span class="text-rose-500">*</span>
+                                </label>
+                                <select formControlName="time_slot" (change)="onTimeSlotChange($event)"
+                                    class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                                    <option value="">— Select Period —</option>
+                                    @for (slot of dbTimeSlots(); track slot.time_slot_id) {
+                                    <option [value]="slot | json">{{ timeSlotLabel(slot) }}</option>
+                                    }
+                                </select>
+                                @if (scheduleForm.get('time_slot')?.invalid && scheduleForm.get('time_slot')?.touched) {
+                                <p class="mt-1 text-xs text-rose-400">Time slot is required.</p>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 4: Room -->
+                    <div class="mb-5">
+                        <p class="text-[10px] uppercase tracking-wider text-slate-600 mb-3">Step 4 — Room (optional)</p>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Room</label>
+                            <select formControlName="room" (change)="onRoomChange($any($event.target).value)"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                                <option value="">— No Room —</option>
+                                @for (r of rooms(); track r.id) {
+                                <option [value]="r.raw_name">{{ r.name }}</option>
+                                }
+                            </select>
+
+                            <!-- Room availability badge -->
+                            @if (selectedRoomName() && roomAvailabilityStatus() !== 'idle') {
+                            <div class="mt-2">
+                                @if (roomAvailabilityStatus() === 'loading') {
+                                <span
+                                    class="inline-flex items-center gap-1 rounded-full bg-slate-700 px-2.5 py-0.5 text-[10px] text-slate-400">
+                                    <i class="fa-solid fa-circle-notch fa-spin"></i> Checking...
+                                </span>
+                                } @else if (roomAvailabilityStatus() === 'available') {
+                                <span
+                                    class="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-400">
+                                    <i class="fa-solid fa-check-circle"></i> Available
+                                </span>
+                                } @else if (roomAvailabilityStatus() === 'busy') {
+                                <span
+                                    class="inline-flex items-center gap-1 rounded-full bg-red-500/15 px-2.5 py-0.5 text-[10px] font-semibold text-red-400">
+                                    <i class="fa-solid fa-circle-exclamation"></i> Busy
+                                </span>
+                                }
+                            </div>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end gap-3 border-t border-slate-800 mt-6 pt-4">
+                        <button type="button" (click)="closeAddModal()"
+                            class="rounded-lg border border-slate-800 px-4 py-2 text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200">Cancel</button>
+                        <button type="submit" [disabled]="scheduleForm.invalid || isSubmitting()"
+                            class="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                            @if (isSubmitting()) {
+                            <i class="fa-solid fa-spinner animate-spin"></i> Saving...
+                            } @else { Save }
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        }
+
+        <!-- ========== EDIT SCHEDULE MODAL ========== -->
+        @if (showEditModal()) {
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            (click)="closeEditModal()">
+            <div class="w-full max-w-xl rounded-xl border border-slate-800 bg-slate-900 p-6 shadow-2xl"
+                (click)="$event.stopPropagation()">
+
+                <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
+                    <h3 class="text-lg font-semibold text-slate-200">
+                        <i class="fa-solid fa-pen mr-2 text-emerald-400"></i>
+                        Edit Schedule
+                    </h3>
+                    <button (click)="closeEditModal()" class="text-slate-400 hover:text-slate-200">
+                        <i class="fa-solid fa-xmark text-xl"></i>
+                    </button>
+                </div>
+
+                <form [formGroup]="editForm" (ngSubmit)="onSubmitEdit()">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Class <span
+                                    class="text-rose-500">*</span></label>
+                            <select formControlName="class_id"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                                @for (c of classes(); track c.id) {
+                                <option [value]="c.id">{{ c.name }}</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Day <span
+                                    class="text-rose-500">*</span></label>
+                            <select formControlName="day_of_week"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                                @for (d of days; track d) {
+                                <option [value]="d">{{ d }}</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Room</label>
+                            <input type="text" formControlName="room"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Start Time <span
+                                    class="text-rose-500">*</span></label>
+                            <input type="time" formControlName="start_time"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">End Time <span
+                                    class="text-rose-500">*</span></label>
+                            <input type="time" formControlName="end_time"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end gap-3 border-t border-slate-800 mt-6 pt-4">
+                        <button type="button" (click)="closeEditModal()"
+                            class="rounded-lg border border-slate-800 px-4 py-2 text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200">Cancel</button>
+                        <button type="submit" [disabled]="editForm.invalid || isUpdating()"
+                            class="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                            @if (isUpdating()) {
+                            <i class="fa-solid fa-spinner animate-spin"></i> Saving...
+                            } @else { <i class="fa-solid fa-floppy-disk"></i> Save }
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        }
+
+        <!-- ========== DELETE MODAL ========== -->
+        @if (showDeleteModal()) {
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+            (click)="closeDeleteModal()">
+            <div class="w-full max-w-sm rounded-2xl border border-red-500/20 bg-slate-900 p-6 shadow-2xl"
+                (click)="$event.stopPropagation()">
+                <div class="flex flex-col items-center text-center">
+                    <div class="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-500/10">
+                        <i class="fa-solid fa-trash text-xl text-red-400"></i>
+                    </div>
+                    <p class="mb-1 text-[11px] font-semibold tracking-wide text-red-400">CONFIRM DELETE</p>
+                    <h2 class="mb-2 text-lg font-bold text-white">Delete Schedule?</h2>
+                    <p class="mb-5 text-sm text-slate-400">
+                        Remove this schedule entry permanently?
+                    </p>
+                    <div class="flex w-full gap-3">
+                        <button type="button" (click)="closeDeleteModal()" [disabled]="isDeleting()"
+                            class="flex-1 rounded-lg border border-slate-700 px-4 py-2.5 text-sm font-medium text-slate-300 hover:border-slate-600 disabled:opacity-60">Cancel</button>
+                        <button type="button" (click)="confirmDelete()" [disabled]="isDeleting()"
+                            class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-red-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-60">
+                            @if (isDeleting()) { <i class="fa-solid fa-circle-notch fa-spin"></i> }
+                            Delete
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        }
+
+    </main>
+</div>

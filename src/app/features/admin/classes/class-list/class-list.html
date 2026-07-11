@@ -1,0 +1,520 @@
+<div class="flex min-h-screen bg-slate-950">
+    <app-sidebar [navGroups]="navGroups" [user]="sidebarUser()" portalRole="ADMIN PORTAL">
+    </app-sidebar>
+
+    <main class="flex-1 overflow-y-auto p-6">
+        <!-- Header -->
+        <div class="mb-1 text-xs text-slate-600">
+            <span>Admin</span> / <span class="text-emerald-400">Classes</span>
+        </div>
+        <div class="mb-6 flex items-center justify-between">
+            <h1 class="text-xl font-bold text-white">Class Management</h1>
+            <div class="flex items-center gap-3">
+                <div class="relative">
+                    <i
+                        class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-xs text-slate-600"></i>
+                    <input type="text" placeholder="Search course, teacher, group..."
+                        (input)="onSearch($any($event.target).value)"
+                        class="w-60 rounded-lg border border-slate-800 bg-slate-900/60 py-2 pl-9 pr-3 text-sm text-slate-300 placeholder-slate-600 outline-none focus:border-emerald-500" />
+                </div>
+
+                <!-- Course Filter -->
+                <div class="relative inline-block text-left">
+                    <select (change)="setCourseFilter($any($event.target).value)"
+                        class="rounded-lg border border-slate-800 bg-slate-900/60 px-3.5 py-2 text-sm text-slate-300 outline-none focus:border-emerald-500">
+                        <option value="">All Courses</option>
+                        @for (c of courses(); track c.id) {
+                        <option [value]="c.id">{{ c.name }}</option>
+                        }
+                    </select>
+                </div>
+
+                <!-- Teacher Filter -->
+                <div class="relative inline-block text-left">
+                    <select (change)="setTeacherFilter($any($event.target).value)"
+                        class="rounded-lg border border-slate-800 bg-slate-900/60 px-3.5 py-2 text-sm text-slate-300 outline-none focus:border-emerald-500">
+                        <option value="">All Teachers</option>
+                        @for (t of teachers(); track t.id) {
+                        <option [value]="t.id">{{ t.name }}</option>
+                        }
+                    </select>
+                </div>
+
+                <button (click)="openAddModal()"
+                    class="flex items-center gap-2 rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:opacity-90">
+                    <i class="fa-solid fa-plus"></i> Add Class
+                </button>
+            </div>
+        </div>
+
+        <div class="rounded-xl border border-slate-800 bg-slate-900/40 animate-fade-in">
+
+            <!-- Loading -->
+            @if (loading()) {
+            <div class="flex h-64 items-center justify-center text-slate-500">
+                <i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Loading...
+            </div>
+            }
+
+            <!-- Error -->
+            @if (error()) {
+            <div class="m-5 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+                {{ error() }}
+            </div>
+            }
+
+            <!-- Bulk Action Bar -->
+            @if (selectedCount() > 0) {
+            <div class="flex items-center justify-between border-b border-slate-800/60 px-5 py-2.5 bg-slate-900/80">
+                <span class="text-sm text-slate-300">
+                    <span class="font-semibold text-emerald-400">{{ selectedCount() }}</span> class(es) selected
+                    <button (click)="clearSelection()"
+                        class="ml-2 text-[11px] text-slate-500 hover:text-slate-300 underline">Clear</button>
+                </span>
+                <button (click)="openBulkDeleteModal()"
+                    class="flex items-center gap-1.5 rounded-lg bg-red-500/20 px-3.5 py-1.5 text-sm font-medium text-red-400 hover:bg-red-500/30">
+                    <i class="fa-solid fa-trash text-xs"></i> Delete Selected
+                </button>
+            </div>
+            }
+
+            <!-- Table -->
+            @if (!loading() && !error()) {
+
+            <div class="max-h-[520px] overflow-auto custom-scrollbar">
+                <table class="min-w-full text-left text-sm">
+                    <thead class="sticky top-0 z-10 bg-slate-900">
+                        <tr class="text-[10px] uppercase tracking-wider text-slate-600">
+                            <th class="w-10 px-4 py-3">
+                                <input type="checkbox" [checked]="isAllSelected()" (change)="toggleSelectAll()"
+                                    class="h-4 w-4 cursor-pointer rounded border-slate-600 bg-slate-800 text-emerald-500 accent-emerald-500 transition-colors focus:ring-2 focus:ring-emerald-500 focus:ring-offset-0" />
+                            </th>
+                            <th class="px-4 py-3 font-medium">ID</th>
+                            <th class="py-3 font-medium">Code</th>
+                            <th class="py-3 font-medium">Course</th>
+                            <th class="py-3 font-medium">Teacher</th>
+                            <th class="py-3 font-medium">Group</th>
+                            <th class="py-3 font-medium">Shift</th>
+                            <th class="py-3 font-medium">Semester</th>
+                            <th class="py-3 font-medium">Status</th>
+                            <th class="px-4 py-3 text-right font-medium">Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        @for (c of filteredClasses(); track c.class_id) {
+                        <tr class="border-t border-slate-800/60 hover:bg-slate-800/20"
+                            [class.bg-emerald-900/10]="selectedIds().has(c.class_id)">
+                            <td class="px-2 py-3">
+                                <input type="checkbox" [checked]="selectedIds().has(c.class_id)"
+                                    (change)="toggleSelect(c.class_id)"
+                                    class="h-4 w-4 rounded border-slate-700 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
+                            </td>
+                            <td class="px-4 py-3 text-slate-500">{{ c.class_id }}</td>
+                            <td class="py-3">
+                                <span class="font-mono text-[13px] text-slate-300">{{ c.class_code || '—' }}</span>
+                            </td>
+                            <td class="py-3">
+                                <div class="min-w-0">
+                                    <p class="text-slate-200 font-medium truncate max-w-[160px]">{{ c.course_name }}</p>
+                                    @if (c.course_code) {
+                                    <p class="text-[11px] text-slate-500">{{ c.course_code }}</p>
+                                    }
+                                </div>
+                            </td>
+                            <td class="text-slate-400 max-w-[140px] truncate">{{ c.teacher_name }}</td>
+                            <td class="text-slate-400">{{ c.group_name }}</td>
+                            <td class="text-slate-400">{{ c.shift_name || '—' }}</td>
+                            <td class="text-slate-400 text-[13px]">{{ c.semester_name || '—' }}</td>
+
+                            <td>
+                                <span class="rounded-full px-2 py-0.5 text-[11px] font-medium"
+                                    [class]="statusClass(c.status)">
+                                    {{ c.status }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3">
+                                <div class="flex justify-end gap-1.5">
+                                    <button (click)="openUpdateModal(c)"
+                                        class="flex h-7 w-7 items-center justify-center rounded-md border border-slate-800 text-emerald-400 hover:border-emerald-500/50">
+                                        <i class="fa-solid fa-pen text-xs"></i>
+                                    </button>
+                                    <button (click)="openDeleteModal(c.class_id, c.course_name || c.class_code || '')"
+                                        class="flex h-7 w-7 items-center justify-center rounded-md border border-slate-800 text-red-400 hover:border-red-500/50">
+                                        <i class="fa-solid fa-trash text-xs"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        } @empty {
+                        <tr>
+                            <td colspan="12" class="px-4 py-10 text-center text-slate-600">
+                                <i class="fa-solid fa-inbox mb-2 block text-lg"></i>
+                                No classes found
+                            </td>
+                        </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Footer / Pagination -->
+            <div class="border-t border-slate-800/60 px-5 py-3">
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] text-slate-600">
+                        Showing page {{ page() }} of {{ totalPages() }} — {{ total() }} total classes
+                    </span>
+                    <nav class="inline-flex rounded-lg overflow-hidden border border-slate-700">
+                        <button [disabled]="page() === 1 || loading()" (click)="onPageChange(page()-1)"
+                            class="px-3 py-2 bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-40">«</button>
+                        <div class="px-4 py-2 bg-slate-950 text-slate-300">{{ page() }} / {{ totalPages() }}</div>
+                        <button [disabled]="page() >= totalPages() || loading()" (click)="onPageChange(page()+1)"
+                            class="px-3 py-2 bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-40">»</button>
+                    </nav>
+                </div>
+            </div>
+            }
+
+        </div>
+
+        <!-- ========== ADD CLASS MODAL ========== -->
+        @if (showAddModal()) {
+        <div class="animate-fade-in fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            (click)="closeAddModal()">
+            <div class="w-full max-w-3xl rounded-xl border border-slate-800 bg-slate-900 p-6 shadow-2xl overflow-y-auto max-h-[90vh]"
+                (click)="$event.stopPropagation()">
+
+                <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
+                    <h3 class="text-lg font-semibold text-slate-200">Add New Class</h3>
+                    <button (click)="closeAddModal()" class="text-slate-400 hover:text-slate-200">
+                        <i class="fa-solid fa-xmark text-xl"></i>
+                    </button>
+                </div>
+
+                <form [formGroup]="classForm" (ngSubmit)="onSubmitClass()">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+                        <!-- class_code -->
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Class Code</label>
+                            <input type="text" formControlName="class_code"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                        </div>
+
+                        <!-- course_id * -->
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Course <span
+                                    class="text-rose-500">*</span></label>
+                            <select formControlName="course_id"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                                <option [value]="null">— Select —</option>
+                                @for (c of courses(); track c.id) {
+                                <option [value]="c.id">{{ c.name }}</option>
+                                }
+                            </select>
+                        </div>
+
+                        <!-- teacher_id * -->
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Teacher <span
+                                    class="text-rose-500">*</span></label>
+                            <select formControlName="teacher_id"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                                <option [value]="null">— Select —</option>
+                                @for (t of teachers(); track t.id) {
+                                <option [value]="t.id">{{ t.name }}</option>
+                                }
+                            </select>
+                        </div>
+
+                        <!-- group_id * -->
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Group <span
+                                    class="text-rose-500">*</span></label>
+                            <select formControlName="group_id"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                                <option [value]="null">— Select —</option>
+                                @for (g of groups(); track g.id) {
+                                <option [value]="g.id">{{ g.name }}</option>
+                                }
+                            </select>
+                        </div>
+
+                        <!-- shift_id -->
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Shift</label>
+                            <select formControlName="shift_id"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                                <option [value]="null">— None —</option>
+                                @for (s of shifts(); track s.id) {
+                                <option [value]="s.id">{{ s.name }}</option>
+                                }
+                            </select>
+                        </div>
+
+                        <!-- semester_id -->
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Semester</label>
+                            <select formControlName="semester_id"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                                <option [value]="null">— None —</option>
+                                @for (s of semesters(); track s.id) {
+                                <option [value]="s.id">{{ s.name }}</option>
+                                }
+                            </select>
+                        </div>
+
+                        <!-- year_id -->
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Academic Year</label>
+                            <select formControlName="year_id"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                                <option [value]="null">— None —</option>
+                                @for (y of years(); track y.id) {
+                                <option [value]="y.id">{{ y.name }}</option>
+                                }
+                            </select>
+                        </div>
+
+                        <!-- status -->
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Status</label>
+                            <select formControlName="status"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                                <option value="Active">Active</option>
+                                <option value="Inactive">Inactive</option>
+                                <option value="Completed">Completed</option>
+                                <option value="Cancelled">Cancelled</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end gap-3 border-t border-slate-800 mt-6 pt-4">
+                        <button type="button" (click)="closeAddModal()"
+                            class="rounded-lg border border-slate-800 px-4 py-2 text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200">Cancel</button>
+                        <button type="submit" [disabled]="classForm.invalid || isSubmitting()"
+                            class="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                            @if (isSubmitting()) {
+                            <i class="fa-solid fa-spinner animate-spin"></i> Saving...
+                            } @else { Save }
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        }
+
+        <!-- ========== UPDATE CLASS MODAL ========== -->
+        @if (showUpdateModal()) {
+        <div class="animate-fade-in fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            (click)="closeUpdateModal()">
+            <div class="w-full max-w-3xl rounded-xl border border-slate-800 bg-slate-900 p-6 shadow-2xl overflow-y-auto max-h-[90vh]"
+                (click)="$event.stopPropagation()">
+
+                <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
+                    <h3 class="text-lg font-semibold text-slate-200">
+                        <i class="fa-solid fa-pen mr-2 text-emerald-400"></i>
+                        Edit Class
+                    </h3>
+                    <button (click)="closeUpdateModal()" class="text-slate-400 hover:text-slate-200">
+                        <i class="fa-solid fa-xmark text-xl"></i>
+                    </button>
+                </div>
+
+                <form [formGroup]="updateForm" (ngSubmit)="onSubmitUpdate()">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Class Code</label>
+                            <input type="text" formControlName="class_code"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Course <span
+                                    class="text-rose-500">*</span></label>
+                            <select formControlName="course_id"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                                <option [value]="null">— Select —</option>
+                                @for (c of courses(); track c.id) {
+                                <option [value]="c.id">{{ c.name }}</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Teacher <span
+                                    class="text-rose-500">*</span></label>
+                            <select formControlName="teacher_id"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                                <option [value]="null">— Select —</option>
+                                @for (t of teachers(); track t.id) {
+                                <option [value]="t.id">{{ t.name }}</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Group <span
+                                    class="text-rose-500">*</span></label>
+                            <select formControlName="group_id"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                                <option [value]="null">— Select —</option>
+                                @for (g of groups(); track g.id) {
+                                <option [value]="g.id">{{ g.name }}</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Shift</label>
+                            <select formControlName="shift_id"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                                <option [value]="null">— None —</option>
+                                @for (s of shifts(); track s.id) {
+                                <option [value]="s.id">{{ s.name }}</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Semester</label>
+                            <select formControlName="semester_id"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                                <option [value]="null">— None —</option>
+                                @for (s of semesters(); track s.id) {
+                                <option [value]="s.id">{{ s.name }}</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Academic Year</label>
+                            <select formControlName="year_id"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                                <option [value]="null">— None —</option>
+                                @for (y of years(); track y.id) {
+                                <option [value]="y.id">{{ y.name }}</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Room</label>
+                            <input type="text" formControlName="room"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Schedule</label>
+                            <input type="text" formControlName="schedule"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Max Students</label>
+                            <input type="number" formControlName="max_students" min="1"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Start Date</label>
+                            <input type="date" formControlName="start_date"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">End Date</label>
+                            <input type="date" formControlName="end_date"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Status</label>
+                            <select formControlName="status"
+                                class="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                                <option value="Active">Active</option>
+                                <option value="Inactive">Inactive</option>
+                                <option value="Completed">Completed</option>
+                                <option value="Cancelled">Cancelled</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end gap-3 border-t border-slate-800 mt-6 pt-4">
+                        <button type="button" (click)="closeUpdateModal()"
+                            class="rounded-lg border border-slate-800 px-4 py-2 text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200">Cancel</button>
+                        <button type="submit" [disabled]="updateForm.invalid || isUpdating()"
+                            class="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                            @if (isUpdating()) {
+                            <i class="fa-solid fa-spinner animate-spin"></i> Saving...
+                            } @else { <i class="fa-solid fa-floppy-disk"></i> Save }
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        }
+
+        <!-- ========== BULK DELETE MODAL ========== -->
+        @if (showBulkDeleteModal()) {
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+            (click)="closeBulkDeleteModal()">
+            <div class="w-full max-w-sm rounded-2xl border border-red-500/20 bg-slate-900 p-6 shadow-2xl"
+                (click)="$event.stopPropagation()">
+                <div class="flex flex-col items-center text-center">
+                    <div class="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-500/10">
+                        <i class="fa-solid fa-trash text-xl text-red-400"></i>
+                    </div>
+                    <p class="mb-1 text-[11px] font-semibold tracking-wide text-red-400">CONFIRM BULK DELETE</p>
+                    <h2 class="mb-2 text-lg font-bold text-white">Delete {{ selectedCount() }} Classes?</h2>
+                    <p class="mb-5 text-sm text-slate-400">
+                        Are you sure you want to permanently delete
+                        <span class="font-semibold text-slate-200">{{ selectedCount() }} classes</span>?
+                    </p>
+                    <div class="flex w-full gap-3">
+                        <button type="button" (click)="closeBulkDeleteModal()" [disabled]="isBulkDeleting()"
+                            class="flex-1 rounded-lg border border-slate-700 px-4 py-2.5 text-sm font-medium text-slate-300 hover:border-slate-600 disabled:opacity-60">Cancel</button>
+                        <button type="button" (click)="confirmBulkDelete()" [disabled]="isBulkDeleting()"
+                            class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-red-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-60">
+                            @if (isBulkDeleting()) { <i class="fa-solid fa-circle-notch fa-spin"></i> }
+                            Delete All
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        }
+
+        <!-- ========== DELETE CLASS MODAL ========== -->
+        @if (showDeleteModal()) {
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+            (click)="closeDeleteModal()">
+            <div class="w-full max-w-sm rounded-2xl border border-red-500/20 bg-slate-900 p-6 shadow-2xl"
+                (click)="$event.stopPropagation()">
+                <div class="flex flex-col items-center text-center">
+                    <div class="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-500/10">
+                        <i class="fa-solid fa-trash text-xl text-red-400"></i>
+                    </div>
+                    <p class="mb-1 text-[11px] font-semibold tracking-wide text-red-400">CONFIRM DELETE</p>
+                    <h2 class="mb-2 text-lg font-bold text-white">Delete Class?</h2>
+                    <p class="mb-5 text-sm text-slate-400">
+                        Are you sure you want to permanently delete
+                        <span class="font-semibold text-slate-200">{{ deleteTarget()?.name }}</span>?
+                    </p>
+                    <div class="flex w-full gap-3">
+                        <button type="button" (click)="closeDeleteModal()" [disabled]="isDeleting()"
+                            class="flex-1 rounded-lg border border-slate-700 px-4 py-2.5 text-sm font-medium text-slate-300 hover:border-slate-600 disabled:opacity-60">Cancel</button>
+                        <button type="button" (click)="confirmDelete()" [disabled]="isDeleting()"
+                            class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-red-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-60">
+                            @if (isDeleting()) { <i class="fa-solid fa-circle-notch fa-spin"></i> }
+                            Delete
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        }
+
+    </main>
+</div>
