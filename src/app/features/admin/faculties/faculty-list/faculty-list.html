@@ -50,7 +50,11 @@
                         <tbody>
                             @for (f of faculties(); track f.faculty_id) {
                             <tr class="border-t border-slate-800/60 hover:bg-slate-800/20">
+<<<<<<< HEAD
                                 <td class="px-4 py-3 text-slate-500">{{ f.faculty_id }}</td>
+=======
+                                <td class="px-4 py-3 text-slate-500">{{ $index + 1 }}</td>
+>>>>>>> 867e5c2a (Update ID Number in Table)
                                 <td class="py-3">
                                     <p class="text-slate-200 font-medium">{{ f.faculty_name }}</p>
                                 </td>

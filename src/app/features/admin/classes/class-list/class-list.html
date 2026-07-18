@@ -110,7 +110,11 @@
                                     (change)="toggleSelect(c.class_id)"
                                     class="h-4 w-4 rounded border-slate-700 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
                             </td>
+<<<<<<< HEAD
                             <td class="px-4 py-3 text-slate-500">{{ c.class_id }}</td>
+=======
+                            <td class="px-4 py-3 text-slate-500">{{ (page() - 1) * limit() + $index + 1 }}</td>
+>>>>>>> 867e5c2a (Update ID Number in Table)
                             <td class="py-3">
                                 <span class="font-mono text-[13px] text-slate-300">{{ c.class_code || '—' }}</span>
                             </td>
