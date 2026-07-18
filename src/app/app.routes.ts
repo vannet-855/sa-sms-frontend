@@ -8,7 +8,16 @@ import { authGuard, loginGuard } from './core/guards/auth.guard';
 export const routes: Routes = [
   { path: '', redirectTo: 'login', pathMatch: 'full' },
   { path: 'login', component: LoginComponent, canActivate: [loginGuard] },
+<<<<<<< HEAD
 
+=======
+  // Redirect /admin -> /admin/dashboard
+  {
+    path: 'admin',
+    redirectTo: 'admin/dashboard',
+    pathMatch: 'full',
+  },
+>>>>>>> 867e5c2a (Update ID Number in Table)
   // ─── Admin Routes ───
   {
     path: 'admin/dashboard',
@@ -169,6 +178,15 @@ export const routes: Routes = [
   },
 
   // ─── Teacher Routes ───
+<<<<<<< HEAD
+=======
+  // Redirect /teacher -> /teacher/dashboard
+  {
+    path: 'teacher',
+    redirectTo: 'teacher/dashboard',
+    pathMatch: 'full',
+  },
+>>>>>>> 867e5c2a (Update ID Number in Table)
   {
     path: 'teacher/dashboard',
     component: TeacherDashboardComponent,
@@ -220,6 +238,15 @@ export const routes: Routes = [
   },
 
   // ─── Student Routes ───
+<<<<<<< HEAD
+=======
+  // Redirect /student -> /student/dashboard
+  {
+    path: 'student',
+    redirectTo: 'student/dashboard',
+    pathMatch: 'full',
+  },
+>>>>>>> 867e5c2a (Update ID Number in Table)
   {
     path: 'student/dashboard',
     component: StudentDashboardComponent,

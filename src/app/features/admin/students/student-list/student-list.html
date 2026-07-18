@@ -111,7 +111,11 @@
                                     (change)="toggleSelect(s.student_id)"
                                     class="h-4 w-4 rounded border-slate-700 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
                             </td>
+<<<<<<< HEAD
                             <td class="px-4 py-3 text-slate-500">{{ s.student_id }}</td>
+=======
+                            <td class="px-4 py-3 text-slate-500">{{ (page() - 1) * limit() + $index + 1 }}</td>
+>>>>>>> 867e5c2a (Update ID Number in Table)
                             <td class="py-3">
                                 <div class="flex items-center gap-2.5">
                                     <div

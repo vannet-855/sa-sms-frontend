@@ -84,7 +84,7 @@
                                     (change)="toggleSelect(t.teacher_id)"
                                     class="h-4 w-4 rounded border-slate-700 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
                             </td>
-                            <td class="px-4 py-3 text-slate-500">{{ t.teacher_id }}</td>
+                            <td class="px-4 py-3 text-slate-500">{{ (page() - 1) * limit() + $index + 1 }}</td>
                             <td class="py-3">
                                 <div class="flex items-center gap-2.5">
                                     <div

@@ -83,7 +83,11 @@
                         <tbody>
                             @for (e of filteredEnrollments(); track e.group_id + '-' + e.class_id) {
                             <tr class="border-t border-slate-800/60 hover:bg-slate-800/20">
+<<<<<<< HEAD
                                 <td class="px-4 py-3 text-slate-500 text-xs font-mono">{{ e.group_id }}-{{ e.class_id }}
+=======
+                                <td class="px-4 py-3 text-slate-500 text-xs font-mono">{{ $index + 1 }}
+>>>>>>> 867e5c2a (Update ID Number in Table)
                                 </td>
                                 <td class="py-3">
                                     <span
